@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PartyKeys Glow Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#5c94fc;color:#fff;font-family:'Press Start 2P',system-ui,sans-serif;
+      display:flex;flex-direction:column;align-items:center;min-height:100vh;
+      user-select:none;overflow:hidden;}
+    header{width:100%;max-width:920px;display:flex;justify-content:space-between;
+      align-items:center;padding:8px 16px;background:rgba(0,0,0,.55);
+      border-bottom:3px solid #000;}
+    .logo{font-size:.85rem;font-weight:800;color:#FFD700;
+      text-shadow:2px 2px 0 #000;letter-spacing:1px;}
+    .midi-status{display:flex;align-items:center;gap:6px;font-size:.6rem;color:#aef}
+    .dot{width:8px;height:8px;border-radius:50%;background:#333;transition:all .3s}
+    .dot.on{background:#00ff88;box-shadow:0 0 6px #00ff88}
+    .dot.err{background:#ff4444;box-shadow:0 0 6px #ff4444}
+    .hud{display:flex;gap:32px;padding:6px 16px;background:rgba(0,0,0,.5);
+      width:100%;max-width:920px;border-bottom:2px solid #000;}
+    .hud-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+    .hud-label{color:#aaa;font-size:.5rem;text-transform:uppercase;letter-spacing:1px}
+    .hud-val{font-size:.85rem;font-weight:700;min-width:60px;text-align:center;
+      color:#FFD700;text-shadow:1px 1px 0 #000;}
+    canvas{display:block;image-rendering:pixelated;
+      border-bottom:4px solid #000;}
+    .kbd-viz{display:flex;gap:2px;margin-top:8px;padding:6px 12px;
+      background:rgba(0,0,0,.6);border-radius:6px;border:2px solid #000;}
+    .key-cell{width:19px;height:44px;border-radius:2px;
+      border:1px solid rgba(0,0,0,.4);transition:background .08s;}
+    .chord-hint{margin-top:6px;font-size:.7rem;color:#FFD700;min-height:20px;
+      letter-spacing:1px;text-transform:uppercase;text-shadow:1px 1px 0 #000;}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,80,.88);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:16px;z-index:10;}
+    .overlay h1{font-size:1.6rem;font-weight:800;color:#FFD700;
+      text-shadow:3px 3px 0 #000,0 0 20px rgba(255,215,0,.5);letter-spacing:2px;}
+    .overlay p{color:#cce;font-size:.65rem;text-align:center;max-width:400px;
+      line-height:2;text-shadow:1px 1px 0 #000;}
+    .btn{padding:12px 28px;border:3px solid #000;border-radius:4px;cursor:pointer;
+      font-size:.7rem;font-weight:700;letter-spacing:1px;color:#fff;
+      background:#e52222;text-shadow:1px 1px 0 #000;
+      box-shadow:4px 4px 0 #000;transition:transform .1s,box-shadow .1s;}
+    .btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 #000;}
+    .btn:active{transform:translate(4px,4px);box-shadow:0 0 0 #000;}
+    .btn-sec{background:#2255cc;margin-top:-4px;}
+    .difficulty-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:520px}
+    .diff-btn{padding:10px 14px;border:3px solid #000;border-radius:4px;background:#1b315f;
+      color:#fff;font-size:.55rem;font-family:inherit;cursor:pointer;box-shadow:3px 3px 0 #000;
+      text-shadow:1px 1px 0 #000;transition:transform .1s,box-shadow .1s,background .15s;}
+    .diff-btn:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 #000}
+    .diff-btn.active{background:#00a86b;color:#fff}
+    .ready-text{color:#ffe277!important;font-size:.7rem!important;max-width:520px!important}
+    .final-score{font-size:2.2rem;font-weight:800;color:#FFD700;
+      text-shadow:3px 3px 0 #000;}
+    .level-badge{font-size:1rem;color:#00ffcc;text-shadow:2px 2px 0 #000}
+    .lives-display{font-size:1rem;letter-spacing:3px;color:#ff4444;
+      text-shadow:1px 1px 0 #000;}
+    @media (max-width:900px){
+      body{overflow:hidden}
+      header{padding:8px 10px;gap:10px}
+      .logo{font-size:.62rem}
+      .midi-status{font-size:.5rem}
+      .hud{justify-content:space-around;gap:8px;padding:6px 8px}
+      .hud-val{font-size:.68rem;min-width:44px}
+      canvas{width:100vw;height:auto;max-height:48dvh}
+      .kbd-viz{width:calc(100vw - 16px);overflow:hidden;padding:5px 6px}
+      .key-cell{flex:1 1 0;width:auto;min-width:0;height:38px}
+      .overlay{padding:18px}
+      .overlay h1{font-size:1.05rem;text-align:center;line-height:1.35}
+      .overlay p{font-size:.55rem}
+      .btn{font-size:.58rem;padding:11px 18px}
+      .difficulty-row{gap:8px}
+      .diff-btn{font-size:.5rem;padding:9px 10px}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⬡ PARTYKEYS GLOW GAME</div>
+  <div class="midi-status"><div class="dot" id="dot"></div><span id="statusTxt">No keyboard</span></div>
+</header>
+<div class="hud">
+  <div class="hud-item"><span class="hud-label">Score</span><span class="hud-val" id="hScore">0</span></div>
+  <div class="hud-item"><span class="hud-label">Lives</span><span class="hud-val lives-display" id="hLives">♥♥♥</span></div>
+  <div class="hud-item"><span class="hud-label">Combo</span><span class="hud-val" id="hCombo">×1</span></div>
+  <div class="hud-item"><span class="hud-label">Level</span><span class="hud-val" id="hLevel">1</span></div>
+</div>
+<canvas id="gc" width="860" height="320"></canvas>
+<div class="kbd-viz" id="kbdViz"></div>
+<div class="chord-hint" id="chordHint"></div>
+
+<div class="overlay" id="ovStart">
+  <h1>PARTYKEYS GLOW GAME</h1>
+  <p id="startCopy">Choose a difficulty, then start to enter the stage. The launch key will glow on the keyboard, and pressing it begins the run.</p>
+  <p style="color:#555;font-size:.8rem">Chrome / Edge required · Web MIDI API</p>
+  <div class="difficulty-row" id="difficultyRow">
+    <button class="diff-btn active" data-diff="easy">EASY</button>
+    <button class="diff-btn" data-diff="medium">MEDIUM</button>
+    <button class="diff-btn" data-diff="hard">HARD</button>
+  </div>
+  <button class="btn" id="btnStart">START GAME</button>
+  <button class="btn btn-sec" id="btnDemo">DEMO MODE (no keyboard)</button>
+</div>
+
+<div class="overlay" id="ovEnd" style="display:none">
+  <h1>GAME OVER</h1>
+  <div class="final-score" id="finalScore">0</div>
+  <p id="endMsg">Keep practicing — your chord skills are growing!</p>
+  <button class="btn" id="btnRestart">PLAY AGAIN</button>
+</div>
+
+<div class="overlay" id="ovLevelClear" style="display:none">
+  <h1>LEVEL CLEAR</h1>
+  <div class="level-badge" id="clearLevelTxt">Level 1 Complete</div>
+  <p id="clearMsg">Nice run. Get ready for the next stage.</p>
+  <button class="btn" id="btnNextLevel">NEXT LEVEL</button>
+</div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const CANVAS_W = 860, CANVAS_H = 320;
+const GROUND_Y = 260;
+const CHAR_X = 110;
+const HIT_LINE_X = CHAR_X + 86;
+const JUMP_VY = -600;
+const GRAVITY = 1400;
+const START_KEY_INDEX = 12; // C4 launch key
+const START_KEY_NOTE = 48 + START_KEY_INDEX;
+const START_KEY_PC = START_KEY_NOTE % 12;
+const HW_LATENCY = 200; // ms LED hardware latency compensation
+const LED_FLASH_MS = 350;
+const BOSS_TRIGGER_HITS = 5;
+const BOSS_X = 650;
+const BOSS_Y = 176;
+const FIRST_OBSTACLE_DELAY_MS = 2000;
+
+const DIFFICULTIES = {
+  easy: {
+    label: 'Easy',
+    speedBase: 104,
+    speedStep: 10,
+    spawnBase: 3600,
+    spawnStep: 60,
+    spawnJitter: 900,
+    promptLeadMs: 2400,
+    hitWindowMs: 900,
+    bossHp: 4,
+    bossPromptMs: 3000,
+    bossHitWindowMs: 900,
+    maxLevel: 3,
+    levelPools: [
+      ['C','G'],
+      ['C','G','F','Am'],
+      ['C','D','F','G','A'],
+    ],
+  },
+  medium: {
+    label: 'Medium',
+    speedBase: 148,
+    speedStep: 20,
+    spawnBase: 2600,
+    spawnStep: 90,
+    spawnJitter: 650,
+    promptLeadMs: 1800,
+    hitWindowMs: 520,
+    bossHp: 6,
+    bossPromptMs: 2300,
+    bossHitWindowMs: 560,
+    maxLevel: 4,
+    levelPools: [
+      ['C','G','Am','F'],
+      ['C','D','E','F','G','A','B'],
+      ['C','D','E','F','G','A','B','Cm','Dm','Em'],
+      ['C','D','E','F','G','A','B','Cm','Dm','Em','Fm','Gm','Am','Bm'],
+    ],
+  },
+  hard: {
+    label: 'Hard',
+    speedBase: 188,
+    speedStep: 30,
+    spawnBase: 1900,
+    spawnStep: 145,
+    spawnJitter: 420,
+    promptLeadMs: 1350,
+    hitWindowMs: 320,
+    bossHp: 8,
+    bossPromptMs: 1700,
+    bossHitWindowMs: 300,
+    maxLevel: 5,
+    levelPools: [
+      ['C','G','Am','F','D','E'],
+      ['C','D','E','F','G','A','B','Cm','Dm','Em'],
+      ['C','D','E','F','G','A','B','Cm','Dm','Em','Fm','Gm','Am','Bm'],
+      ['C','D','E','F','G','A','B','Cm','Dm','Em','Fm','Gm','Am','Bm'],
+      ['C','D','E','F','G','A','B','Cm','Dm','Em','Fm','Gm','Am','Bm'],
+    ],
+  },
+};
+
+// ─── DEFAULT KEY COLORS (36 keys, left→right) ────────────────────────────────
+const DEFAULT_COLORS = [
+  '#FF9D02','#FB8A02','#F87D01','#F57200','#F36500','#EF5500',
+  '#F14A00','#F33F00','#F53400','#F82800','#FA1E00','#FC1200',
+  '#FC0B17','#FC0A32','#FC094B','#FB0768','#FB0582','#F902A7',
+  '#EA02B3','#D502B7','#BC01BD','#A301C2','#8B01C8','#7400CC',
+  '#5901CB','#4B03BC','#3F04AF','#3206A0','#230790','#150981',
+  '#161C80','#1E3387','#264C8F','#306797','#38809E','#47ABAB'
+];
+
+// Key index 0 = C3 (MIDI 48). White/black pattern per octave: W B W B W W B W B W B W
+const KEY_IS_BLACK = [false,true,false,true,false,false,true,false,true,false,true,false];
+
+// ─── CHORD DEFINITIONS ───────────────────────────────────────────────────────
+// Pitch classes (0=C … 11=B). Detection is octave-agnostic.
+const CHORD_DEFS = {
+  'C':  {pc:[0,4,7],  keys:[12,16,19], label:'C',  type:'maj', color:[255,255,200]},
+  'D':  {pc:[2,6,9],  keys:[14,18,21], label:'D',  type:'maj', color:[255,255,200]},
+  'E':  {pc:[4,8,11], keys:[16,20,23], label:'E',  type:'maj', color:[255,255,200]},
+  'F':  {pc:[5,9,0],  keys:[17,21,24], label:'F',  type:'maj', color:[255,255,200]},
+  'G':  {pc:[7,11,2], keys:[19,23,26], label:'G',  type:'maj', color:[255,255,200]},
+  'A':  {pc:[9,1,4],  keys:[21,25,28], label:'A',  type:'maj', color:[255,255,200]},
+  'B':  {pc:[11,3,6], keys:[23,27,30], label:'B',  type:'maj', color:[255,255,200]},
+  'Cm': {pc:[0,3,7],  keys:[12,15,19], label:'Cm', type:'min', color:[100,160,255]},
+  'Dm': {pc:[2,5,9],  keys:[14,17,21], label:'Dm', type:'min', color:[100,160,255]},
+  'Em': {pc:[4,7,11], keys:[16,19,23], label:'Em', type:'min', color:[100,160,255]},
+  'Fm': {pc:[5,8,0],  keys:[17,20,24], label:'Fm', type:'min', color:[100,160,255]},
+  'Gm': {pc:[7,10,2], keys:[19,22,26], label:'Gm', type:'min', color:[100,160,255]},
+  'Am': {pc:[9,0,4],  keys:[21,24,28], label:'Am', type:'min', color:[100,160,255]},
+  'Bm': {pc:[11,2,6], keys:[23,26,30], label:'Bm', type:'min', color:[100,160,255]},
+};
+const CHORD_NAMES = Object.keys(CHORD_DEFS);
+const OBSTACLE_VARIANTS = [
+  {type:'pipe', w:38, h:46},
+  {type:'shortPipe', w:34, h:36},
+  {type:'tallPipe', w:40, h:62},
+  {type:'post', w:42, h:50},
+];
+
+// ─── MIDI / LED STATE ────────────────────────────────────────────────────────
+let midiOut = null, midiIn = null, demoMode = false;
+let ledState = Array.from({length:36}, () => [0,0,0]); // current LED colors
+let flashTimer = null;
+
+function hexToRgb(h) {
+  const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
+  return [r,g,b];
+}
+function encCh(v) { return [Math.floor(v/128), v%128]; }
+
+function buildCmd15(groups) {
+  // groups: [{r,g,b, keys:[...]}]
+  const hdr = [0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x15, groups.length];
+  const body = [];
+  for (const g of groups) {
+    body.push(...encCh(g.r), ...encCh(g.g), ...encCh(g.b), g.keys.length, ...g.keys);
+  }
+  return new Uint8Array([...hdr, ...body, 0xF7]);
+}
+
+function ledEnterMode() {
+  if (!midiOut) return;
+  midiOut.send([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x0F,0x01,0xF7]);
+}
+function ledAllOff() {
+  if (midiOut) midiOut.send([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x71,0x00,0xF7]);
+  for (let i = 0; i < 36; i++) ledState[i] = [0,0,0];
+  updateKbdViz();
+}
+function ledSendDefault() {
+  if (!midiOut) return;
+  const groups = DEFAULT_COLORS.map((hex,i) => {
+    const [r,g,b] = hexToRgb(hex); return {r,g,b,keys:[i]};
+  });
+  midiOut.send(buildCmd15(groups));
+  ledState = DEFAULT_COLORS.map(hex => hexToRgb(hex));
+  updateKbdViz();
+}
+
+function ledLightStartKey() {
+  ledAllOff();
+  const color = [0,255,180];
+  if (midiOut) midiOut.send(buildCmd15([{r:color[0],g:color[1],b:color[2],keys:[START_KEY_INDEX]}]));
+  ledState[START_KEY_INDEX] = color;
+  updateKbdViz();
+}
+
+function ledHighlightChord(chordName) {
+  const def = CHORD_DEFS[chordName];
+  if (!def) return;
+  const [cr,cg,cb] = def.color;
+  if (midiOut) {
+    // Step 1: turn all keys off via CMD 113
+    midiOut.send([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x71,0x00,0xF7]);
+    // Step 2: light only the 3 target keys
+    midiOut.send(buildCmd15([{r:cr,g:cg,b:cb,keys:def.keys}]));
+  }
+  for (let i = 0; i < 36; i++) {
+    ledState[i] = def.keys.includes(i) ? [cr,cg,cb] : [0,0,0];
+  }
+  updateKbdViz();
+}
+
+function ledFlash(r, g, b, onDone) {
+  if (flashTimer) clearTimeout(flashTimer);
+  const allFlash = [{r,g,b,keys:[...Array(36).keys()]}];
+  if (midiOut) midiOut.send(buildCmd15(allFlash));
+  for (let i=0;i<36;i++) ledState[i]=[r,g,b];
+  updateKbdViz();
+  flashTimer = setTimeout(() => { ledAllOff(); if(onDone) onDone(); }, LED_FLASH_MS);
+}
+
+// ─── SOUND FX ────────────────────────────────────────────────────────────────
+let audioCtx = null;
+let audioReady = false;
+let musicTimer = null;
+let musicStep = 0;
+let musicMode = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) audioCtx = new Ctx();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  audioReady = true;
+}
+
+function tone(freq, dur=0.12, type='square', gain=0.08, when=0) {
+  if (!audioReady || !audioCtx) return;
+  const t = audioCtx.currentTime + when;
+  const osc = audioCtx.createOscillator();
+  const amp = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  amp.gain.setValueAtTime(0.0001, t);
+  amp.gain.exponentialRampToValueAtTime(gain, t + 0.01);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(amp).connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.03);
+}
+
+
+function noteToFreq(note) {
+  return 440 * Math.pow(2, (note - 69) / 12);
+}
+
+function chordTone(freq, dur, gain, when, type='triangle') {
+  if (!audioReady || !audioCtx) return;
+  const t = audioCtx.currentTime + when;
+  const osc = audioCtx.createOscillator();
+  const amp = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(1800, t);
+  amp.gain.setValueAtTime(0.0001, t);
+  amp.gain.exponentialRampToValueAtTime(gain, t + 0.025);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(filter).connect(amp).connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.04);
+}
+
+function playChordSound(chordName, style='prompt') {
+  if (!audioReady) return;
+  const def = CHORD_DEFS[chordName];
+  if (!def) return;
+  const dur = style === 'hit' ? 1.65 : 0.46;
+  const gain = style === 'hit' ? 0.095 : 0.028;
+  const spread = style === 'hit' ? 0.018 : 0.012;
+  def.keys.forEach((keyIndex, i) => {
+    const midi = 48 + keyIndex;
+    chordTone(noteToFreq(midi), dur, gain, i * spread);
+    if (style === 'hit') chordTone(noteToFreq(midi) * 1.005, 1.45, 0.045, 0.035 + i * spread, 'sine');
+  });
+  if (style === 'hit') chordTone(noteToFreq(48 + def.keys[0] - 12), 1.2, 0.055, 0);
+}
+
+function noiseHit(dur=0.16, gain=0.08) {
+  if (!audioReady || !audioCtx) return;
+  const samples = Math.floor(audioCtx.sampleRate * dur);
+  const buffer = audioCtx.createBuffer(1, samples, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i=0;i<samples;i++) data[i] = (Math.random()*2-1) * (1 - i/samples);
+  const src = audioCtx.createBufferSource();
+  const amp = audioCtx.createGain();
+  amp.gain.value = gain;
+  src.buffer = buffer;
+  src.connect(amp).connect(audioCtx.destination);
+  src.start();
+}
+
+function startMusic(mode='run') {
+  if (!audioReady) return;
+  if (musicTimer && musicMode === mode) return;
+  stopMusic();
+  musicMode = mode;
+  musicStep = 0;
+  const isBoss = mode === 'boss';
+  const bass = isBoss ? [73,73,110,73,98,98,147,110] : [98,0,147,0,130,0,147,0];
+  const lead = isBoss ? [392,0,466,523,0,392,622,0,587,0,523,466,0,392,330,0] : [392,0,0,494,0,0,523,0,494,0,0,330,0,0,392,0];
+  const interval = isBoss ? 125 : 230;
+  musicTimer = setInterval(() => {
+    const i = musicStep++;
+    const b = bass[i % bass.length];
+    if (b) tone(b, isBoss ? .10 : .13, isBoss ? 'sawtooth' : 'triangle', isBoss ? .034 : .018);
+    if (isBoss && i % 2 === 0) tone(49, .04, 'square', .025);
+    const n = lead[i % lead.length];
+    if (n) tone(n, isBoss ? .06 : .08, 'square', isBoss ? .026 : .017, .025);
+    if (isBoss && i % 4 === 2) noiseHit(.045, .035);
+  }, interval);
+}
+
+function stopMusic() {
+  if (musicTimer) {
+    clearInterval(musicTimer);
+    musicTimer = null;
+  }
+  musicMode = null;
+}
+
+function playSfx(name, note=60) {
+  if (!audioReady) return;
+  if (name === 'key') {
+    const freq = 220 * Math.pow(2, (note - 57) / 12);
+    tone(freq, 0.045, 'triangle', 0.04);
+    tone(freq*2.01, 0.035, 'sine', 0.025, 0.012);
+  } else if (name === 'start') {
+    tone(196, .07, 'sawtooth', .08); tone(392, .08, 'square', .07, .07); tone(784, .12, 'square', .07, .15); noiseHit(.08, .04);
+  } else if (name === 'prompt') {
+    tone(440, .045, 'square', .05); tone(880, .055, 'square', .045, .06);
+  } else if (name === 'bossPrompt') {
+    tone(196, .06, 'sawtooth', .06);
+    tone(392, .055, 'square', .045, .075);
+    noiseHit(.05, .035);
+  } else if (name === 'correct') {
+    tone(330, .05, 'square', .065); tone(660, .06, 'square', .07, .045); tone(990, .1, 'square', .065, .11); noiseHit(.05, .035);
+  } else if (name === 'wrong') {
+    tone(155, .22, 'sawtooth', .08); tone(110, .2, 'sawtooth', .07, .08);
+  } else if (name === 'miss') {
+    noiseHit(.18, .12); tone(92, .28, 'sawtooth', .08);
+  } else if (name === 'boss') {
+    noiseHit(.12, .09); tone(98, .18, 'sawtooth', .09); tone(147, .18, 'sawtooth', .08, .14); tone(220, .22, 'sawtooth', .08, .28);
+  } else if (name === 'bossHit') {
+    noiseHit(.045, .15);
+    tone(980, .035, 'sawtooth', .085);
+    tone(260, .045, 'square', .075, .025);
+    noiseHit(.04, .13);
+    tone(1180, .035, 'sawtooth', .08, .075);
+    tone(300, .05, 'square', .075, .1);
+    noiseHit(.055, .12);
+  } else if (name === 'beat') {
+    tone(1760, .035, 'square', .045); noiseHit(.035, .03);
+  } else if (name === 'clear') {
+    tone(523, .1, 'square', .07); tone(659, .1, 'square', .07, .1); tone(784, .1, 'square', .07, .2); tone(1046, .24, 'square', .07, .32);
+  }
+}
+
+// ─── MIDI CONNECT ─────────────────────────────────────────────────────────────
+async function connectMIDI() {
+  if (!navigator.requestMIDIAccess) {
+    setStatus('Web MIDI not supported','err'); return;
+  }
+  try {
+    const access = await navigator.requestMIDIAccess({sysex:true});
+    setupMIDIPorts(access);
+    access.onstatechange = () => setupMIDIPorts(access);
+  } catch(e) { setStatus('MIDI access denied','err'); }
+}
+
+function setupMIDIPorts(access) {
+  midiOut = null; midiIn = null;
+  for (const p of access.outputs.values()) {
+    if (p.name.toLowerCase().includes('partykeys') || !midiOut) midiOut = p;
+  }
+  for (const p of access.inputs.values()) {
+    if (p.name.toLowerCase().includes('partykeys') || !midiIn) midiIn = p;
+  }
+  if (midiOut) {
+    setStatus(midiOut.name.slice(0,28),'on');
+    ledEnterMode();
+    setTimeout(() => pendingLaunch ? ledLightStartKey() : ledAllOff(), 80);
+    window._pkOnMidiConnect && window._pkOnMidiConnect();
+  } else { setStatus('No keyboard',''); }
+  if (midiIn) midiIn.onmidimessage = onMIDIMessage;
+}
+
+function setStatus(txt, cls) {
+  document.getElementById('statusTxt').textContent = txt;
+  const d = document.getElementById('dot');
+  d.className = 'dot' + (cls ? ' '+cls : '');
+}
+
+// ─── MIDI INPUT ───────────────────────────────────────────────────────────────
+const heldNotes = new Set();
+
+function onMIDIMessage(e) {
+  if (window._pkMidiHook) window._pkMidiHook(e);
+  const [st, note, vel] = e.data;
+  const type = st & 0xF0;
+  if (type === 0x90 && vel > 0) {
+    heldNotes.add(note);
+    playSfx('key', note);
+    if (pendingLaunch && isLaunchNote(note)) {
+      beginRun();
+      return;
+    }
+    checkChordInput();
+  } else if (type === 0x80 || (type === 0x90 && vel === 0)) {
+    heldNotes.delete(note);
+  }
+}
+
+function isLaunchNote(note) {
+  return note === START_KEY_NOTE || note % 12 === START_KEY_PC;
+}
+
+function checkChordInput() {
+  if (!gs.playing) return;
+  const pcs = new Set([...heldNotes].map(n => n % 12));
+  for (const name of CHORD_NAMES) {
+    const def = CHORD_DEFS[name];
+    if (def.pc.every(p => pcs.has(p))) {
+      onChordPlayed(name); return;
+    }
+  }
+}
+
+// ─── GAME STATE ───────────────────────────────────────────────────────────────
+const gs = {
+  playing: false, score: 0, lives: 3, combo: 0,
+  level: 1, obstacleCount: 0, difficulty: 'easy', mode: 'run',
+  char: { y: GROUND_Y, vy: 0, jumping: false, leap: 0, leapDur: 0.72 },
+  obstacles: [],
+  boss: null,
+  particles: [],
+  nextSpawn: 0,
+  activeChord: null,   // chord name currently being prompted
+  ledActive: false,
+  lastTime: 0,
+};
+let pendingLaunch = false;
+let selectedDifficulty = 'easy';
+
+function getDifficulty() {
+  return DIFFICULTIES[gs.difficulty] || DIFFICULTIES.easy;
+}
+
+function resetGame() {
+  gs.score=0; gs.lives=3; gs.combo=0; gs.level=1; gs.obstacleCount=0;
+  gs.difficulty = selectedDifficulty; gs.mode = 'run';
+  gs.char={y:GROUND_Y,vy:0,jumping:false,leap:0,leapDur:0.72};
+  gs.obstacles=[]; gs.boss=null; gs.particles=[];
+  gs.nextSpawn=FIRST_OBSTACLE_DELAY_MS; gs.activeChord=null; gs.ledActive=false;
+  updateHUD();
+}
+
+function spawnObstacle() {
+  const diff = getDifficulty();
+  const pool = diff.levelPools[Math.min(gs.level-1, diff.levelPools.length-1)];
+  const chord = pool[Math.floor(Math.random()*pool.length)];
+  const speed = diff.speedBase + (gs.level-1)*diff.speedStep;
+  const variants = OBSTACLE_VARIANTS.slice(0, Math.min(OBSTACLE_VARIANTS.length, 2 + gs.level));
+  const variant = variants[Math.floor(Math.random()*variants.length)];
+  gs.obstacles.push({
+    x: CANVAS_W + 20, chord, speed,
+    w: variant.w, h: variant.h, type: variant.type,
+    warned: false, hit: false, passed: false,
+    hitTime: null,
+  });
+}
+
+function timingErrorMs(obs) {
+  return ((obs.x + obs.w / 2 - HIT_LINE_X) / obs.speed) * 1000;
+}
+
+function startBossFight() {
+  if (!gs.playing || gs.mode !== 'bossIntro') return;
+  gs.obstacles = gs.obstacles.filter(o => !o.hit);
+  const diff = getDifficulty();
+  gs.mode = 'boss';
+  startMusic('boss');
+  gs.obstacles = [];
+  gs.combo = 0;
+  gs.boss = {
+    hp: diff.bossHp,
+    maxHp: diff.bossHp,
+    prompt: null,
+    nextPrompt: 650,
+    hitFlash: 0,
+  };
+  ledAllOff();
+  document.getElementById('chordHint').textContent = 'BOSS BATTLE';
+  document.getElementById('chordHint').style.color = '#00ffcc';
+  playSfx('boss');
+  updateHUD();
+}
+
+function spawnBossPrompt() {
+  const diff = getDifficulty();
+  const pool = diff.levelPools[Math.min(gs.level-1, diff.levelPools.length-1)];
+  const chord = pool[Math.floor(Math.random()*pool.length)];
+  gs.boss.prompt = {
+    chord,
+    age: 0,
+    duration: diff.bossPromptMs,
+    hit: false,
+  };
+  setTimeout(() => {
+    if (gs.playing && gs.mode === 'boss' && gs.boss?.prompt?.chord === chord) ledHighlightChord(chord);
+  }, HW_LATENCY);
+  document.getElementById('chordHint').textContent = 'Boss chord: ' + chord;
+  document.getElementById('chordHint').style.color = '#ffdd88';
+  playSfx('bossPrompt');
+  playChordSound(chord, 'prompt');
+  playSfx('beat');
+}
+
+function bossPromptErrorMs(prompt) {
+  return prompt.age - prompt.duration;
+}
+
+// ─── CHORD INPUT HANDLER ──────────────────────────────────────────────────────
+function onChordPlayed(name) {
+  if (gs.mode === 'boss') {
+    onBossChordPlayed(name);
+    return;
+  }
+  const obs = gs.obstacles.find(o => o.warned && !o.hit && !o.passed);
+  if (!obs) return;
+  const diff = getDifficulty();
+  const errorMs = timingErrorMs(obs);
+  if (Math.abs(errorMs) > diff.hitWindowMs) {
+    const early = errorMs > 0;
+    document.getElementById('chordHint').textContent =
+      (early ? 'TOO EARLY' : 'TOO LATE') + ' — ' + Math.round(Math.abs(errorMs)) + 'ms';
+    document.getElementById('chordHint').style.color = early ? '#ffdd88' : '#ff6644';
+    return;
+  }
+  if (name === obs.chord) {
+    // Correct!
+    gs.combo++;
+    const bonus = gs.combo >= 3 ? 2 : 1;
+    const timingBonus = Math.abs(errorMs) <= diff.hitWindowMs * 0.35 ? 50 : 0;
+    gs.score += (100 + timingBonus) * bonus * gs.level;
+    gs.obstacleCount++;
+    if (gs.obstacleCount >= BOSS_TRIGGER_HITS && gs.mode === 'run') {
+      gs.mode = 'bossIntro';
+      setTimeout(startBossFight, 520);
+    } else if (gs.obstacleCount % 8 === 0) gs.level = Math.min(diff.maxLevel, gs.level+1);
+    obs.hit = true;
+    // Jump character
+    gs.char.vy = JUMP_VY;
+    gs.char.jumping = true;
+    gs.char.leap = gs.char.leapDur;
+    // Particles
+    spawnParticles(CHAR_X+20, gs.char.y, [0,255,120]);
+    // LED green flash
+    ledFlash(0,220,100);
+    playSfx('correct');
+    playChordSound(name, 'hit');
+    document.getElementById('chordHint').textContent = '✓ ' + name;
+    document.getElementById('chordHint').style.color = '#00ff88';
+    gs.activeChord = null; gs.ledActive = false;
+    updateHUD();
+  } else {
+    // Wrong chord — small penalty, no life loss
+    document.getElementById('chordHint').textContent = '✗ ' + name + ' (need ' + obs.chord + ')';
+    document.getElementById('chordHint').style.color = '#ff6644';
+    spawnParticles(CHAR_X+20, gs.char.y, [255,60,0]);
+    ledFlash(180,0,0, () => {
+      if (gs.playing && !obs.hit && !obs.passed) ledHighlightChord(obs.chord);
+    });
+    playSfx('wrong');
+  }
+}
+
+function onBossChordPlayed(name) {
+  const boss = gs.boss;
+  const prompt = boss?.prompt;
+  if (!boss || !prompt || prompt.hit) return;
+  const diff = getDifficulty();
+  const errorMs = bossPromptErrorMs(prompt);
+  if (Math.abs(errorMs) > diff.bossHitWindowMs) {
+    const early = errorMs < 0;
+    document.getElementById('chordHint').textContent =
+      (early ? 'BOSS: TOO EARLY' : 'BOSS: TOO LATE') + ' — ' + Math.round(Math.abs(errorMs)) + 'ms';
+    document.getElementById('chordHint').style.color = early ? '#ffdd88' : '#ff6644';
+    return;
+  }
+  if (name === prompt.chord) {
+    prompt.hit = true;
+    boss.hp--;
+    boss.hitFlash = 0.28;
+    gs.combo++;
+    gs.score += 250 * Math.max(1, gs.combo) * gs.level;
+    spawnParticles(BOSS_X, BOSS_Y, [0,255,180]);
+    ledFlash(0,220,100);
+    playSfx('bossHit');
+    playChordSound(name, 'hit');
+    document.getElementById('chordHint').textContent = 'HIT! ' + name;
+    document.getElementById('chordHint').style.color = '#00ff88';
+    boss.prompt = null;
+    boss.nextPrompt = 760;
+    updateHUD();
+    if (boss.hp <= 0) setTimeout(winBossFight, 450);
+  } else {
+    gs.combo = 0;
+    gs.lives--;
+    spawnParticles(CHAR_X+20, gs.char.y, [255,0,60]);
+    ledFlash(200,0,0, () => {
+      if (gs.playing && gs.mode === 'boss' && gs.boss?.prompt) ledHighlightChord(gs.boss.prompt.chord);
+    });
+    playSfx('wrong');
+    document.getElementById('chordHint').textContent = 'BOSS BLOCKED — need ' + prompt.chord;
+    document.getElementById('chordHint').style.color = '#ff4444';
+    updateHUD();
+    if (gs.lives <= 0) setTimeout(endGame, 400);
+  }
+}
+
+function missBossPrompt() {
+  if (!gs.boss?.prompt) return;
+  const missed = gs.boss.prompt.chord;
+  gs.boss.prompt = null;
+  gs.combo = 0;
+  gs.lives--;
+  gs.boss.nextPrompt = 850;
+  ledFlash(200,0,0);
+  playSfx('miss');
+  spawnParticles(CHAR_X+20, gs.char.y, [255,0,60]);
+  document.getElementById('chordHint').textContent = 'BOSS MISS — ' + missed;
+  document.getElementById('chordHint').style.color = '#ff4444';
+  updateHUD();
+  if (gs.lives <= 0) setTimeout(endGame, 400);
+}
+
+function winBossFight() {
+  if (!gs.playing || gs.mode !== 'boss') return;
+  const clearedLevel = gs.level;
+  gs.score += 1000 * gs.level;
+  gs.level = Math.min(getDifficulty().maxLevel, gs.level + 1);
+  gs.mode = 'levelClear';
+  gs.playing = false;
+  stopMusic();
+  gs.boss = null;
+  gs.obstacles = [];
+  gs.obstacleCount = 0;
+  gs.nextSpawn = 1200;
+  gs.combo = 0;
+  ledFlash(0,255,180);
+  playSfx('clear');
+  document.getElementById('chordHint').textContent = 'LEVEL CLEAR';
+  document.getElementById('chordHint').style.color = '#00ffcc';
+  document.getElementById('clearLevelTxt').textContent = 'Level ' + clearedLevel + ' Complete';
+  document.getElementById('clearMsg').textContent =
+    gs.level > clearedLevel ? 'Boss defeated. Continue to Level ' + gs.level + '.' : 'Boss defeated. Keep pushing your score.';
+  updateHUD();
+  setTimeout(() => {
+    document.getElementById('ovLevelClear').style.display = 'flex';
+    ledAllOff();
+  }, 650);
+}
+
+function continueNextLevel() {
+  document.getElementById('ovLevelClear').style.display = 'none';
+  gs.mode = 'run';
+  gs.playing = true;
+  gs.boss = null;
+  gs.obstacles = [];
+  gs.particles = [];
+  gs.combo = 0;
+  gs.char={y:GROUND_Y,vy:0,jumping:false,leap:0,leapDur:0.72};
+  gs.nextSpawn = FIRST_OBSTACLE_DELAY_MS;
+  gs.lastTime = performance.now();
+  document.getElementById('chordHint').textContent = '';
+  startMusic('run');
+  updateHUD();
+  requestAnimationFrame(gameLoop);
+}
+
+function missObstacle(obs) {
+  obs.passed = true;
+  gs.combo = 0;
+  gs.lives--;
+  spawnParticles(CHAR_X+20, gs.char.y, [255,0,60]);
+  ledFlash(200,0,0);
+  playSfx('miss');
+  document.getElementById('chordHint').textContent = 'MISS — ' + obs.chord;
+  document.getElementById('chordHint').style.color = '#ff4444';
+  gs.activeChord = null; gs.ledActive = false;
+  updateHUD();
+  if (gs.lives <= 0) setTimeout(endGame, 400);
+}
+
+// ─── GAME LOOP ────────────────────────────────────────────────────────────────
+function gameLoop(ts) {
+  if (!gs.playing) return;
+  const dt = Math.min((ts - gs.lastTime) / 1000, 0.05);
+  gs.lastTime = ts;
+
+  // Spawn
+  const diff = getDifficulty();
+  if (gs.mode === 'run') {
+    gs.nextSpawn -= dt * 1000;
+    if (gs.nextSpawn <= 0) {
+      spawnObstacle();
+      gs.nextSpawn = Math.max(1500, diff.spawnBase - (gs.level-1) * diff.spawnStep) + Math.random()*diff.spawnJitter;
+    }
+  } else if (gs.mode === 'boss') {
+    updateBossFight(dt);
+  }
+
+  // Update character
+  const ch = gs.char;
+  if (ch.leap > 0) ch.leap = Math.max(0, ch.leap - dt);
+  if (ch.jumping) {
+    ch.vy += GRAVITY * dt;
+    ch.y += ch.vy * dt;
+    if (ch.y >= GROUND_Y) { ch.y = GROUND_Y; ch.vy = 0; ch.jumping = false; }
+  }
+
+  if (gs.mode === 'run') {
+    // Update obstacles
+    for (const obs of gs.obstacles) {
+      if (obs.passed) continue;
+      obs.x -= obs.speed * dt;
+
+      // Warn zone: light up LEDs
+      const timeToHitMs = timingErrorMs(obs);
+      if (!obs.hit && !obs.warned && timeToHitMs <= diff.promptLeadMs + HW_LATENCY) {
+        obs.warned = true;
+        gs.activeChord = obs.chord;
+        gs.ledActive = true;
+        setTimeout(() => {
+          if (gs.playing && gs.mode === 'run' && !obs.hit && !obs.passed) ledHighlightChord(obs.chord);
+        }, HW_LATENCY);
+        document.getElementById('chordHint').textContent = 'Play: ' + obs.chord;
+        document.getElementById('chordHint').style.color = '#ffdd88';
+        playSfx('prompt');
+        playChordSound(obs.chord, 'prompt');
+      }
+
+    // Miss detection: obstacle crossed the hit line without being cleared
+    if (obs.x + obs.w / 2 < HIT_LINE_X - 22 && !obs.hit) {
+      if (!ch.jumping || ch.y > GROUND_Y - 30) missObstacle(obs);
+      else obs.passed = true; // jumped over without playing chord (shouldn't happen)
+      }
+    }
+    gs.obstacles = gs.obstacles.filter(o => o.x > -200);
+  }
+
+  // Particles
+  for (const p of gs.particles) { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=600*dt; p.life-=dt; }
+  gs.particles = gs.particles.filter(p => p.life > 0);
+
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+function updateBossFight(dt) {
+  const boss = gs.boss;
+  if (!boss) return;
+  if (boss.hitFlash > 0) boss.hitFlash -= dt;
+  if (boss.prompt) {
+    boss.prompt.age += dt * 1000;
+    if (boss.prompt.age > boss.prompt.duration + getDifficulty().bossHitWindowMs) missBossPrompt();
+  } else {
+    boss.nextPrompt -= dt * 1000;
+    if (boss.nextPrompt <= 0) spawnBossPrompt();
+  }
+}
+
+function spawnParticles(x, y, rgb) {
+  for (let i=0;i<14;i++) {
+    const a = Math.random()*Math.PI*2, spd = 80+Math.random()*180;
+    gs.particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-120,
+      life:0.5+Math.random()*0.4, rgb});
+  }
+}
+
+// ─── RENDERING ────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('gc');
+const ctx = canvas.getContext('2d');
+
+// Scrolling background offset
+let bgOffset = 0;
+
+function drawBackground() {
+  if (gs.mode === 'boss') {
+    drawBossBackground();
+    return;
+  }
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0,0,0,CANVAS_H);
+  sky.addColorStop(0,'#5c94fc'); sky.addColorStop(1,'#a8d8f0');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+
+  // Sun
+  ctx.fillStyle='#FFE566';
+  ctx.beginPath();ctx.arc(CANVAS_W-70,50,32,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath();ctx.arc(CANVAS_W-70,50,26,0,Math.PI*2);ctx.fill();
+
+  // Clouds (parallax scroll)
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  const clouds=[{x:120,y:40,r:22},{x:300,y:28,r:18},{x:560,y:50,r:26},{x:740,y:32,r:20}];
+  for(const c of clouds){
+    const cx=(c.x - bgOffset*0.3 + CANVAS_W*2)%CANVAS_W;
+    drawCloud(cx,c.y,c.r);
+  }
+
+  // Far hills (light green)
+  ctx.fillStyle='#6abf4b';
+  drawHills(bgOffset*0.4, 180, 120, 60);
+
+  // Near hills (darker green)
+  ctx.fillStyle='#4a9e2a';
+  drawHills(bgOffset*0.7, 210, 90, 45);
+
+  // Ground grass strip
+  ctx.fillStyle='#5cb85c';
+  ctx.fillRect(0, GROUND_Y+36, CANVAS_W, 14);
+  // Ground dirt
+  ctx.fillStyle='#8B5E3C';
+  ctx.fillRect(0, GROUND_Y+50, CANVAS_W, CANVAS_H-(GROUND_Y+50));
+  // Dirt texture lines
+  ctx.strokeStyle='rgba(0,0,0,.12)';ctx.lineWidth=1;
+  for(let x=((bgOffset*1.2|0)%40)-40;x<CANVAS_W;x+=40){
+    ctx.beginPath();ctx.moveTo(x,GROUND_Y+58);ctx.lineTo(x+20,GROUND_Y+58);ctx.stroke();
+  }
+
+  // Decorations: trees & fence
+  const trees=[{x:200},{x:420},{x:650},{x:820}];
+  for(const t of trees){
+    const tx=(t.x - bgOffset + CANVAS_W*4)%CANVAS_W;
+    drawTree(tx, GROUND_Y+36);
+  }
+  const fences=[{x:80},{x:160},{x:340},{x:500},{x:700}];
+  for(const f of fences){
+    const fx=(f.x - bgOffset*0.9 + CANVAS_W*4)%CANVAS_W;
+    drawFence(fx, GROUND_Y+36);
+  }
+}
+
+function drawBossBackground() {
+  const sky = ctx.createLinearGradient(0,0,0,CANVAS_H);
+  sky.addColorStop(0,'#071033'); sky.addColorStop(0.55,'#18246f'); sky.addColorStop(1,'#32114f');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+
+  ctx.fillStyle='rgba(255,255,255,.18)';
+  for (let i=0;i<38;i++) {
+    const x=(i*83 - bgOffset*0.22 + CANVAS_W*2)%CANVAS_W;
+    const y=20 + (i*37)%130;
+    ctx.fillRect(x,y,2,2);
+  }
+
+  ctx.strokeStyle='rgba(0,255,225,.16)';ctx.lineWidth=2;
+  for(let x=((bgOffset*0.8|0)%48)-48;x<CANVAS_W;x+=48){
+    ctx.beginPath();ctx.moveTo(x,GROUND_Y+90);ctx.lineTo(x+38,GROUND_Y+36);ctx.stroke();
+  }
+
+  ctx.fillStyle='#171027';
+  drawHills(bgOffset*0.28, 206, 130, 58);
+  ctx.fillStyle='#24143d';
+  drawHills(bgOffset*0.55, 232, 96, 48);
+
+  ctx.fillStyle='#222037';
+  ctx.fillRect(0, GROUND_Y+36, CANVAS_W, 14);
+  ctx.fillStyle='#11121f';
+  ctx.fillRect(0, GROUND_Y+50, CANVAS_W, CANVAS_H-(GROUND_Y+50));
+  ctx.strokeStyle='rgba(255,61,242,.24)';ctx.lineWidth=2;
+  for(let x=((bgOffset*1.6|0)%42)-42;x<CANVAS_W;x+=42){
+    ctx.beginPath();ctx.moveTo(x,GROUND_Y+62);ctx.lineTo(x+24,GROUND_Y+62);ctx.stroke();
+  }
+}
+
+function drawCloud(x,y,r) {
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+r*.8,y+4,r*.7,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x-r*.7,y+5,r*.65,0,Math.PI*2);ctx.fill();
+}
+
+function drawHills(offset, baseY, w, h) {
+  ctx.beginPath();ctx.moveTo(0,CANVAS_H);
+  for(let x=((offset|0)%w)-w;x<CANVAS_W+w;x+=w){
+    ctx.quadraticCurveTo(x+w/2,baseY-h,x+w,baseY);
+  }
+  ctx.lineTo(CANVAS_W,CANVAS_H);ctx.closePath();ctx.fill();
+}
+
+function drawTree(x,groundY) {
+  // Trunk
+  ctx.fillStyle='#7B4F2E';
+  ctx.fillRect(x-4,groundY-28,8,28);
+  // Leaves
+  ctx.fillStyle='#2d8a2d';
+  ctx.beginPath();ctx.arc(x,groundY-38,20,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#3aaa3a';
+  ctx.beginPath();ctx.arc(x-6,groundY-44,14,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+6,groundY-44,14,0,Math.PI*2);ctx.fill();
+}
+
+function drawFence(x,groundY) {
+  ctx.fillStyle='#d4a96a';
+  ctx.fillRect(x-3,groundY-20,6,20);
+  ctx.fillStyle='#c49050';
+  ctx.fillRect(x-3,groundY-22,6,4);
+}
+
+function render() {
+  if (gs.playing) bgOffset += 1.2;
+  drawBackground();
+
+  // Obstacles
+  for (const obs of gs.obstacles) {
+    drawObstacle(obs);
+  }
+
+  if (gs.mode === 'run') drawRunHitLine();
+
+  if (gs.mode === 'boss' && gs.boss) drawBossFight();
+
+  // Character
+  drawCharacter(CHAR_X, gs.char.y);
+
+  // Particles
+  for (const p of gs.particles) {
+    const a = Math.max(0, p.life/0.9);
+    ctx.fillStyle=`rgba(${p.rgb[0]},${p.rgb[1]},${p.rgb[2]},${a})`;
+    ctx.beginPath();ctx.arc(p.x,p.y,4*a,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawRunHitLine() {
+  const active = gs.obstacles.some(o => {
+    if (!o.warned || o.hit || o.passed) return false;
+    return Math.abs(timingErrorMs(o)) <= getDifficulty().hitWindowMs;
+  });
+  const top = 78, bottom = GROUND_Y + 42;
+  ctx.save();
+  ctx.strokeStyle = active ? '#00ff88' : '#ffd94d';
+  ctx.lineWidth = active ? 7 : 5;
+  ctx.shadowColor = active ? '#00ff88' : '#ffd94d';
+  ctx.shadowBlur = active ? 18 : 10;
+  ctx.beginPath();ctx.moveTo(HIT_LINE_X, top);ctx.lineTo(HIT_LINE_X, bottom);ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = active ? 'rgba(0,255,136,.18)' : 'rgba(255,217,77,.12)';
+  ctx.fillRect(HIT_LINE_X-18, top, 36, bottom-top);
+  ctx.fillStyle = active ? '#00ff88' : '#ffd94d';
+  ctx.font='bold 11px system-ui,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('HIT', HIT_LINE_X, top-14);
+  ctx.restore();
+}
+
+function drawBossFight() {
+  const boss = gs.boss;
+  const pulse = Math.sin(Date.now()/120) * 3;
+  drawBoss(BOSS_X, BOSS_Y, boss.hitFlash > 0);
+  drawBossHealth(boss);
+  if (boss.prompt) drawBossChordCircle(boss.prompt);
+  ctx.fillStyle='rgba(0,0,0,.45)';
+  roundRect(ctx, CANVAS_W/2-92, 18, 184, 28, 5); ctx.fill();
+  ctx.fillStyle='#00ffcc';
+  ctx.font='bold 12px system-ui,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('BOSS BATTLE', CANVAS_W/2, 32 + pulse*0.15);
+  ctx.textBaseline='alphabetic';
+}
+
+function drawBoss(x, y, hit) {
+  ctx.save();
+  if (hit) {
+    ctx.translate((Math.random()-.5)*8, (Math.random()-.5)*4);
+  }
+  ctx.shadowColor = hit ? '#fff' : '#ff3df2';
+  ctx.shadowBlur = hit ? 28 : 18;
+  ctx.fillStyle = hit ? '#ffb8fb' : '#4d1b8f';
+  roundRect(ctx, x-48, y-62, 96, 116, 16); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle='#120622'; ctx.lineWidth=4; ctx.stroke();
+
+  // Horns
+  ctx.fillStyle='#ffd94d';
+  ctx.beginPath();ctx.moveTo(x-34,y-58);ctx.lineTo(x-54,y-88);ctx.lineTo(x-18,y-68);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(x+34,y-58);ctx.lineTo(x+54,y-88);ctx.lineTo(x+18,y-68);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#120622';ctx.lineWidth=3;ctx.stroke();
+
+  // Face visor
+  ctx.fillStyle='#090d2d';
+  roundRect(ctx, x-34, y-38, 68, 28, 8); ctx.fill();
+  ctx.fillStyle='#00ffe1';
+  ctx.beginPath();ctx.arc(x-16,y-24,6,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+16,y-24,6,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#ff3df2';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(x,y-8,16,0.15*Math.PI,0.85*Math.PI);ctx.stroke();
+
+  // Arms and equalizer teeth
+  ctx.strokeStyle='#00ffe1';ctx.lineWidth=8;
+  ctx.beginPath();ctx.moveTo(x-48,y-8);ctx.lineTo(x-72,y+12);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+48,y-8);ctx.lineTo(x+72,y+12);ctx.stroke();
+  ctx.fillStyle='#00ffe1';
+  for (let i=0;i<6;i++) ctx.fillRect(x-30+i*12, y+24, 6, 18 + Math.sin(Date.now()/120+i)*5);
+  ctx.restore();
+}
+
+function drawBossHealth(boss) {
+  const w = 170, h = 22, x = BOSS_X - w/2, y = BOSS_Y - 108;
+  ctx.fillStyle='rgba(0,0,0,.55)';
+  roundRect(ctx,x,y,w,h,5);ctx.fill();
+  ctx.strokeStyle='#06142b';ctx.lineWidth=2;ctx.stroke();
+  const pct = Math.max(0, boss.hp / boss.maxHp);
+  ctx.fillStyle=pct > .45 ? '#00d084' : '#ff445f';
+  roundRect(ctx,x+3,y+3,(w-6)*pct,h-6,4);ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.font='bold 11px system-ui,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(`${boss.hp} / ${boss.maxHp}`, x+w/2, y+h/2);
+  ctx.textBaseline='alphabetic';
+}
+
+function drawBossChordCircle(prompt) {
+  const x1 = 180, x2 = 470, y = 146;
+  const targetX = 275;
+  const progress = Math.min(1.18, prompt.age / prompt.duration);
+  const markerX = x2 - (x2 - targetX) * progress;
+  const inWindow = Math.abs(bossPromptErrorMs(prompt)) <= getDifficulty().bossHitWindowMs;
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,.32)';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();
+  ctx.strokeStyle=inWindow ? '#00ff88' : '#ffd94d';ctx.lineWidth=8;
+  ctx.beginPath();ctx.moveTo(targetX,y-62);ctx.lineTo(targetX,y+62);ctx.stroke();
+  ctx.fillStyle=inWindow ? 'rgba(0,255,136,.18)' : 'rgba(255,217,77,.12)';
+  ctx.fillRect(targetX-18,y-62,36,124);
+
+  ctx.shadowColor=inWindow ? '#00ff88' : '#ff3df2';ctx.shadowBlur=18;
+  ctx.fillStyle=inWindow ? '#00ff88' : '#ff3df2';
+  roundRect(ctx, markerX-42, y-28, 84, 56, 8);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.strokeStyle='#120622';ctx.lineWidth=4;ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.font='bold 16px system-ui,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(prompt.chord, markerX, y);
+  ctx.fillStyle='#fff';
+  ctx.font='bold 11px system-ui,sans-serif';
+  ctx.fillText('HIT LINE', targetX, y+78);
+  ctx.restore();
+  ctx.textBaseline='alphabetic';
+}
+
+function drawObstacle(obs) {
+  const x = obs.x, y = GROUND_Y+36-obs.h, w = obs.w, h = obs.h;
+  if (obs.type === 'post') drawChordPost(x, y, w, h, obs.chord, obs.warned, obs.hit);
+  else drawPipe(x, y, w, h, obs.chord, obs.warned, obs.hit, obs.type);
+}
+
+function drawPipe(x, y, w, h, chord, warned, hit, type='pipe') {
+  ctx.globalAlpha = 1;
+
+  const lipH = type === 'tallPipe' ? 16 : 14;
+  const lipW = w + 10;
+  const lipX = x - 5;
+  const bodyY = y + lipH - 2;
+
+  // Pipe body
+  const pipeGrad = ctx.createLinearGradient(x, y, x+w, y);
+  pipeGrad.addColorStop(0, '#087c38');
+  pipeGrad.addColorStop(0.24, '#17c95c');
+  pipeGrad.addColorStop(0.52, '#0aa84a');
+  pipeGrad.addColorStop(1, '#045f2d');
+  ctx.fillStyle = pipeGrad;
+  roundRect(ctx, x, bodyY, w, h-lipH+2, 4); ctx.fill();
+  ctx.strokeStyle = '#013d1d'; ctx.lineWidth = 3; ctx.stroke();
+
+  // Pipe lip
+  const lipGrad = ctx.createLinearGradient(lipX, y, lipX+lipW, y);
+  lipGrad.addColorStop(0, '#0a8b3f');
+  lipGrad.addColorStop(0.25, '#24e36c');
+  lipGrad.addColorStop(0.58, '#0db551');
+  lipGrad.addColorStop(1, '#04672f');
+  ctx.fillStyle = lipGrad;
+  roundRect(ctx, lipX, y, lipW, lipH, 5); ctx.fill();
+  ctx.strokeStyle = '#013d1d'; ctx.lineWidth = 3; ctx.stroke();
+
+  // Highlights and inner rim
+  ctx.fillStyle='rgba(255,255,255,.22)';
+  ctx.fillRect(x+7, bodyY+5, 5, Math.max(8, h-lipH-8));
+  ctx.fillRect(lipX+8, y+4, 7, Math.max(4, lipH-8));
+  ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x+w-13,bodyY+4);ctx.lineTo(x+w-13,y+h-6);ctx.stroke();
+
+  if (hit) {
+    ctx.fillStyle='rgba(0,255,136,.22)';
+    roundRect(ctx, lipX-4, y-4, lipW+8, h+8, 8); ctx.fill();
+  }
+
+  // Chord label above pipe
+  const labelW = Math.max(48, chord.length*12+16);
+  const lx = x+w/2-labelW/2, ly = y-34;
+  ctx.fillStyle = warned ? '#FFD700' : '#222';
+  ctx.strokeStyle='#000';ctx.lineWidth=2;
+  roundRect(ctx,lx,ly,labelW,26,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle = warned ? '#000' : '#fff';
+  ctx.font='bold 13px system-ui,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(chord, x+w/2, ly+13);
+  ctx.textBaseline='alphabetic';
+
+  // Glow when warned
+  if (warned && !hit) {
+    ctx.shadowColor='#FFD700';ctx.shadowBlur=16;
+    ctx.strokeStyle='#FFD700';ctx.lineWidth=2;
+    ctx.strokeRect(lipX-2,y-2,lipW+4,h+4);
+    ctx.shadowBlur=0;
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawChordPost(x, y, w, h, chord, warned, hit) {
+  ctx.globalAlpha = 1;
+  const grad = ctx.createLinearGradient(x, y, x+w, y);
+  grad.addColorStop(0, '#a75a25');
+  grad.addColorStop(0.35, '#e58a3a');
+  grad.addColorStop(1, '#8d471b');
+  ctx.fillStyle = grad;
+  roundRect(ctx, x, y+12, w, h-12, 5); ctx.fill();
+  ctx.strokeStyle='#4c230d';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle = warned ? '#2667ff' : '#17418f';
+  roundRect(ctx, x-4, y, w+8, 24, 4);ctx.fill();
+  ctx.strokeStyle='#06142b';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.font='bold 13px system-ui,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(chord, x+w/2, y+12);
+  ctx.fillStyle='#fff2d7';
+  ctx.beginPath();ctx.arc(x+w/2-8,y+h-22,4,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+w/2+8,y+h-22,4,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#4c230d';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(x+w/2,y+h-16,6,0,Math.PI);ctx.stroke();
+  if (warned && !hit) {
+    ctx.shadowColor='#FFD700';ctx.shadowBlur=16;
+    ctx.strokeStyle='#FFD700';ctx.lineWidth=2;
+    ctx.strokeRect(x-6,y-2,w+12,h+4);
+    ctx.shadowBlur=0;
+  }
+  ctx.textBaseline='alphabetic';
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+
+
+function drawCharacter(x, y) {
+  const j = gs.char.jumping;
+  const t = Date.now()/200;
+  // Hat (red)
+  ctx.fillStyle='#e52222';
+  ctx.fillRect(x+6,y-14,28,8);
+  ctx.fillRect(x+10,y-22,20,10);
+  // Hat brim highlight
+  ctx.fillStyle='#ff5555';
+  ctx.fillRect(x+6,y-14,28,3);
+  // Face (skin)
+  ctx.fillStyle='#f5c18a';
+  ctx.fillRect(x+10,y-6,20,14);
+  // Eyes
+  ctx.fillStyle='#000';
+  ctx.fillRect(x+13,y-3,4,4);
+  ctx.fillRect(x+23,y-3,4,4);
+  // Mustache
+  ctx.fillStyle='#7B3F00';
+  ctx.fillRect(x+10,y+4,20,5);
+  // Overalls (blue)
+  ctx.fillStyle='#2255cc';
+  ctx.fillRect(x+8,y+8,24,16);
+  // Shirt (red)
+  ctx.fillStyle='#e52222';
+  ctx.fillRect(x+6,y+10,6,10);
+  ctx.fillRect(x+28,y+10,6,10);
+  // Overall straps
+  ctx.fillStyle='#2255cc';
+  ctx.fillRect(x+13,y+6,5,4);
+  ctx.fillRect(x+22,y+6,5,4);
+  // Legs
+  ctx.fillStyle='#2255cc';
+  if (j) {
+    // Jump pose: legs spread
+    ctx.fillRect(x+6,y+24,10,10);
+    ctx.fillRect(x+24,y+24,10,10);
+    // Shoes
+    ctx.fillStyle='#8B4513';
+    ctx.fillRect(x+4,y+32,14,6);
+    ctx.fillRect(x+22,y+32,14,6);
+  } else {
+    // Run cycle
+    const step = Math.floor(t)%2;
+    if(step===0){
+      ctx.fillRect(x+8,y+24,10,12);ctx.fillRect(x+22,y+24,10,8);
+      ctx.fillStyle='#8B4513';
+      ctx.fillRect(x+6,y+34,14,6);ctx.fillRect(x+20,y+30,14,6);
+    } else {
+      ctx.fillRect(x+8,y+24,10,8);ctx.fillRect(x+22,y+24,10,12);
+      ctx.fillStyle='#8B4513';
+      ctx.fillRect(x+6,y+30,14,6);ctx.fillRect(x+20,y+34,14,6);
+    }
+  }
+  // White gloves
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(x+4,y+14,5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+36,y+14,5,0,Math.PI*2);ctx.fill();
+}
+
+// ─── KEYBOARD VISUALIZER ──────────────────────────────────────────────────────
+function buildKbdViz() {
+  const viz = document.getElementById('kbdViz');
+  viz.innerHTML = '';
+  for (let i=0;i<36;i++) {
+    const el = document.createElement('div');
+    el.className = 'key-cell' + (KEY_IS_BLACK[i%12] ? ' black' : '');
+    el.id = 'k'+i;
+    el.onclick = () => {
+      if (pendingLaunch && demoMode && i === START_KEY_INDEX) beginRun();
+    };
+    const [r,g,b] = ledState[i];
+    el.style.background = `rgb(${r},${g},${b})`;
+    viz.appendChild(el);
+  }
+}
+
+function updateKbdViz() {
+  for (let i=0;i<36;i++) {
+    const el = document.getElementById('k'+i);
+    if (!el) continue;
+    const [r,g,b] = ledState[i];
+    el.style.background = `rgb(${r},${g},${b})`;
+    el.style.boxShadow = (r+g+b > 60) ? `0 0 6px rgba(${r},${g},${b},.7)` : 'none';
+  }
+}
+
+// ─── HUD ──────────────────────────────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('hScore').textContent = gs.score.toLocaleString();
+  document.getElementById('hLives').textContent = '♥'.repeat(gs.lives) + '♡'.repeat(Math.max(0,3-gs.lives));
+  document.getElementById('hCombo').textContent = '×' + (gs.combo||1);
+  document.getElementById('hLevel').textContent = `${gs.level} ${getDifficulty().label[0]}`;
+}
+
+// ─── START / END ──────────────────────────────────────────────────────────────
+function armLaunch(demo) {
+  initAudio();
+  demoMode = demo;
+  pendingLaunch = true;
+  gs.playing = false;
+  document.getElementById('ovEnd').style.display = 'none';
+  resetGame();
+  document.getElementById('ovStart').style.display = 'none';
+  document.getElementById('chordHint').textContent = demo
+    ? 'Click the glowing C4 key below or press Space to start'
+    : 'Press the glowing C4 key on PartyKeys to start';
+  document.getElementById('chordHint').style.color = '#00ffc8';
+  ledLightStartKey();
+  playSfx('prompt');
+  render();
+}
+
+function beginRun() {
+  initAudio();
+  pendingLaunch = false;
+  document.getElementById('ovStart').style.display = 'none';
+  document.getElementById('ovEnd').style.display = 'none';
+  document.getElementById('ovLevelClear').style.display = 'none';
+  document.getElementById('chordHint').textContent = '';
+  ledAllOff();
+  setTimeout(ledAllOff, 80);
+  setTimeout(ledAllOff, 240);
+  playSfx('start');
+  startMusic('run');
+  gs.nextSpawn = FIRST_OBSTACLE_DELAY_MS;
+  gs.playing = true;
+  gs.lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+function endGame() {
+  gs.playing = false;
+  stopMusic();
+  ledFlash(180,0,60);
+  playSfx('miss');
+  const s = gs.score;
+  document.getElementById('finalScore').textContent = s.toLocaleString();
+  let msg = 'Keep practicing — your chord skills are growing!';
+  if (s > 2000) msg = 'Great run! Your chord memory is getting sharp.';
+  if (s > 5000) msg = 'Incredible! You\'re a chord master.';
+  document.getElementById('endMsg').textContent = msg;
+  setTimeout(() => {
+    document.getElementById('ovEnd').style.display = 'flex';
+    document.getElementById('ovLevelClear').style.display = 'none';
+    setTimeout(ledAllOff, 400);
+  }, 600);
+}
+
+// ─── DEMO MODE (keyboard shortcuts) ──────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (pendingLaunch && demoMode && e.code === 'Space') {
+    e.preventDefault();
+    beginRun();
+    return;
+  }
+  if (!gs.playing) return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    // Auto-play the current required chord
+    if (gs.mode === 'boss' && gs.boss?.prompt) {
+      const p = gs.boss.prompt;
+      p.age = p.duration;
+      onChordPlayed(p.chord);
+    } else {
+      const obs = gs.obstacles.find(o => o.warned && !o.hit && !o.passed);
+      if (obs) onChordPlayed(obs.chord);
+    }
+  }
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildKbdViz();
+connectMIDI();
+
+document.getElementById('btnStart').onclick = () => armLaunch(false);
+document.getElementById('btnDemo').onclick = () => armLaunch(true);
+document.getElementById('btnRestart').onclick = () => armLaunch(demoMode);
+document.getElementById('btnNextLevel').onclick = () => continueNextLevel();
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.onclick = () => {
+    selectedDifficulty = btn.dataset.diff;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+    if (pendingLaunch) armLaunch(demoMode);
+  };
+});
+
+// Initial idle render
+(function idleRender() {
+  if (gs.playing) return;
+  drawBackground();
+  drawCharacter(CHAR_X, GROUND_Y);
+  requestAnimationFrame(idleRender);
+})();
+
+</script>
+</body>
+</html>
