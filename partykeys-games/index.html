@@ -50,7 +50,7 @@
       }
 
       .wrap {
-        width: min(980px, calc(100% - 40px));
+        width: min(1440px, calc(100% - 80px));
         margin: 0 auto;
       }
 
@@ -95,7 +95,7 @@
       }
 
       .hero {
-        padding: 70px 0 98px;
+        padding: 70px 0 72px;
       }
 
       .eyebrow {
@@ -122,14 +122,14 @@
 
       h1 {
         margin: 22px 0 0;
-        max-width: 820px;
+        max-width: none;
         font-size: clamp(54px, 9vw, 104px);
         line-height: 0.95;
         letter-spacing: -0.07em;
       }
 
       .gradient-line {
-        display: block;
+        display: inline;
         background: linear-gradient(90deg, #ff5038 0%, #ffb02e 22%, #34c48c 45%, #35b7ff 68%, #6f5cff 100%);
         -webkit-background-clip: text;
         background-clip: text;
@@ -144,34 +144,6 @@
         line-height: 1.55;
         font-weight: 600;
         letter-spacing: -0.01em;
-      }
-
-      .hero-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 28px;
-      }
-
-      .button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 40px;
-        padding: 10px 16px;
-        border: 1.5px solid var(--ink);
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 900;
-      }
-
-      .button.primary {
-        background: var(--ink);
-        color: #fff;
-      }
-
-      .button.secondary {
-        background: #fff;
       }
 
       .section {
@@ -352,36 +324,96 @@
         font-size: 10px;
       }
 
-      .closing {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 18px;
-        margin-top: 36px;
-      }
-
-      .mini {
-        padding: 20px 0 0;
+      .footer {
         border-top: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(246, 243, 237, 0.75), #fffdfa),
+          var(--paper);
       }
 
-      .mini strong {
-        display: block;
-        color: var(--mini-color);
-        font-size: 30px;
-        line-height: 1;
+      .footer-inner {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(150px, 0.45fr));
+        gap: 34px;
+        padding: 42px 0 34px;
       }
 
-      .mini h3 {
-        margin: 10px 0 8px;
-        font-size: 17px;
+      .footer-brand {
+        display: grid;
+        gap: 14px;
+        align-content: start;
       }
 
-      .mini p {
+      .footer-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: -0.04em;
+      }
+
+      .footer-copy {
+        max-width: 420px;
         margin: 0;
         color: #555550;
-        font-size: 13px;
-        line-height: 1.5;
+        font-size: 14px;
+        line-height: 1.6;
         font-weight: 600;
+      }
+
+      .footer-col h3 {
+        margin: 0 0 12px;
+        color: #282825;
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .footer-links {
+        display: grid;
+        gap: 9px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .footer-links a,
+      .footer-links span {
+        color: #555550;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .footer-links a:hover {
+        color: var(--ink);
+      }
+
+      .footer-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 0 28px;
+        border-top: 1px solid var(--line);
+        color: #77736d;
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .footer-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .footer-status::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--green);
       }
 
       @media (max-width: 900px) {
@@ -390,7 +422,7 @@
         }
 
         .connect-grid,
-        .closing {
+        .footer-inner {
           grid-template-columns: 1fr;
         }
       }
@@ -414,7 +446,7 @@
         }
 
         .hero {
-          padding: 48px 0 70px;
+          padding: 48px 0 50px;
         }
 
         .section-inner {
@@ -429,6 +461,11 @@
 
         .game-card {
           min-height: 0;
+        }
+
+        .footer-bottom {
+          align-items: flex-start;
+          flex-direction: column;
         }
       }
     </style>
@@ -448,7 +485,6 @@
       <nav class="nav" aria-label="Main navigation">
         <a href="#games">Games</a>
         <a href="#connect">Connect</a>
-        <a href="#deploy">Deploy</a>
       </nav>
     </header>
 
@@ -462,10 +498,6 @@
         <p class="hero-copy">
           One clean home for the PartyKeys browser games. Each game stays in its own folder, and every card below opens the game directly.
         </p>
-        <div class="hero-actions">
-          <a class="button primary" href="#games">Play the games</a>
-          <a class="button secondary" href="./games/chord-runner/">Test keyboard flow →</a>
-        </div>
       </section>
 
       <section class="section" id="games" style="--section-bg: var(--soft); --num-color: var(--red)">
@@ -512,35 +544,49 @@
           </div>
         </div>
       </section>
-
-      <section class="section" id="deploy" style="--section-bg: var(--soft); --num-color: var(--blue)">
-        <div class="wrap section-inner">
-          <div class="num">03</div>
-          <div>
-            <div class="section-kicker">Deployment</div>
-            <h2>Static files. Easy GitHub and Netlify deploy.</h2>
-            <p class="lead">The site is just HTML, CSS, and JavaScript. Upload the project folder to GitHub, then point Netlify at the folder that contains this index page.</p>
-            <div class="closing">
-              <div class="mini" style="--mini-color: var(--red)">
-                <strong>01</strong>
-                <h3>Upload files</h3>
-                <p>Keep index.html, netlify.toml, README.md, and games/ together.</p>
-              </div>
-              <div class="mini" style="--mini-color: var(--orange)">
-                <strong>02</strong>
-                <h3>Deploy on Netlify</h3>
-                <p>Use no build command. Publish the folder that contains index.html.</p>
-              </div>
-              <div class="mini" style="--mini-color: var(--violet)">
-                <strong>03</strong>
-                <h3>Add more games</h3>
-                <p>Create a new games folder and add one item to the game list.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <div class="footer-brand">
+          <div class="footer-title">
+            <span>PartyKeys Games</span>
+            <span class="brand-mark" aria-hidden="true">
+              <span class="brand-dot" style="background: var(--red)"></span>
+              <span class="brand-dot" style="background: var(--yellow)"></span>
+              <span class="brand-dot" style="background: var(--green)"></span>
+              <span class="brand-dot" style="background: var(--blue)"></span>
+              <span class="brand-dot" style="background: var(--violet)"></span>
+            </span>
+          </div>
+          <p class="footer-copy">A lightweight game center for PartyKeys browser games. Built as a static site so it can stay simple, portable, and easy to deploy.</p>
+        </div>
+
+        <div class="footer-col">
+          <h3>Play</h3>
+          <ul class="footer-links">
+            <li><a href="./games/glow-game/">Glow Game</a></li>
+            <li><a href="./games/chord-climber/">Chord Climber</a></li>
+            <li><a href="./games/fruit-frenzy/">Fruit Frenzy</a></li>
+            <li><a href="./games/chord-runner/">Chord Runner</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h3>Project</h3>
+          <ul class="footer-links">
+            <li><a href="#games">Game library</a></li>
+            <li><a href="#connect">Connection</a></li>
+            <li><span>Static HTML site</span></li>
+            <li><span>Netlify ready</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="wrap footer-bottom">
+        <span>© 2026 PartyKeys Games</span>
+        <span class="footer-status">Ready for GitHub and Netlify</span>
+      </div>
+    </footer>
 
     <script>
       const games = [
