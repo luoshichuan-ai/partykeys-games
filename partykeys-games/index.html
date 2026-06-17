@@ -226,7 +226,7 @@
 
       .game-card {
         position: relative;
-        min-height: 245px;
+        min-height: 355px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -236,6 +236,26 @@
         content: "";
         height: 4px;
         background: var(--accent);
+      }
+
+      .game-thumb {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border-bottom: 1px solid var(--line);
+        background: color-mix(in srgb, var(--accent) 10%, #fff);
+      }
+
+      .game-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 180ms ease;
+      }
+
+      .game-card:hover .game-thumb img {
+        transform: scale(1.035);
       }
 
       .game-body {
@@ -293,6 +313,70 @@
         font-size: 13px;
         font-weight: 950;
         text-transform: uppercase;
+      }
+
+      .video-section-head {
+        display: grid;
+        gap: 18px;
+      }
+
+      .video-section-head h2 {
+        max-width: 980px;
+      }
+
+      .video-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 38px;
+      }
+
+      .video-card {
+        min-height: 420px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(17, 17, 15, 0.06);
+      }
+
+      .video-card iframe,
+      .video-card video {
+        display: block;
+        width: 100%;
+        height: 420px;
+        border: 0;
+        background: #f1f1ef;
+      }
+
+      .video-card video {
+        object-fit: cover;
+      }
+
+      .video-empty {
+        margin-top: 38px;
+        padding: 34px;
+        border: 1px dashed #d6ccbd;
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 18% 20%, rgba(128, 87, 255, 0.08), transparent 28%),
+          radial-gradient(circle at 78% 30%, rgba(80, 184, 255, 0.12), transparent 26%),
+          #fff;
+      }
+
+      .video-empty strong {
+        display: block;
+        font-size: 22px;
+        letter-spacing: -0.04em;
+      }
+
+      .video-empty p {
+        max-width: 620px;
+        margin: 10px 0 0;
+        color: #555550;
+        font-size: 15px;
+        line-height: 1.55;
+        font-weight: 600;
       }
 
       .connect-grid {
@@ -421,6 +505,10 @@
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .video-grid {
+          grid-template-columns: 1fr;
+        }
+
         .connect-grid,
         .footer-inner {
           grid-template-columns: 1fr;
@@ -459,6 +547,18 @@
           grid-template-columns: 1fr;
         }
 
+        .video-section-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .video-card,
+        .video-card iframe,
+        .video-card video {
+          min-height: 0;
+          height: 520px;
+        }
+
         .game-card {
           min-height: 0;
         }
@@ -484,7 +584,8 @@
       </a>
       <nav class="nav" aria-label="Main navigation">
         <a href="#games">Games</a>
-        <a href="#connect">Connect</a>
+        <a href="#videos">Videos</a>
+        <a href="#protocol">Protocol</a>
       </nav>
     </header>
 
@@ -512,32 +613,48 @@
         </div>
       </section>
 
-      <section class="section" id="connect" style="--num-color: var(--green)">
+      <section class="section" id="videos" style="--num-color: var(--violet)">
         <div class="wrap section-inner">
           <div class="num">02</div>
           <div>
-            <div class="section-kicker">Connection</div>
-            <h2>Two ways to play. Both under a minute.</h2>
-            <p class="lead">Use PartyKeys in Chrome or Edge for the full Web MIDI experience, or start with demo mode when you just want to preview the gameplay.</p>
+            <div class="video-section-head">
+              <div>
+                <div class="section-kicker">Instagram videos</div>
+                <h2>See the games in action.</h2>
+                <p class="lead">Drop in Instagram Reel or video links here, and the Game Center will show them as playable video cards.</p>
+              </div>
+            </div>
+            <div class="video-grid" id="videoGrid" aria-label="PartyKeys Instagram videos"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="protocol" style="--num-color: var(--green)">
+        <div class="wrap section-inner">
+          <div class="num">03</div>
+          <div>
+            <div class="section-kicker">Lighting protocol</div>
+            <h2>Build your own PartyKeys experience.</h2>
+            <p class="lead">PartyKeys Protocol is the open MIDI + SysEx spec for lighting keys from a browser, script, app, or AI-built prototype. Use it to make your own trainers, games, sequencers, and visual music tools.</p>
             <div class="connect-grid">
               <article class="note-card">
-                <h3>With PartyKeys</h3>
-                <p>Best for LED prompts and real chord input.</p>
+                <h3>Per-key RGB control</h3>
+                <p>PartyKeys 36 exposes 36 addressable keys over USB MIDI. Request SysEx access, enter LED mode once, then send CMD 15 messages to set any key group to any RGB color.</p>
                 <ul class="check-list">
-                  <li>Open the site over HTTPS on Netlify</li>
-                  <li>Use Chrome or Edge</li>
-                  <li>Connect MIDI inside the game</li>
-                  <li>Follow the lit chord prompts</li>
+                  <li>36 keys, MIDI notes 48–83</li>
+                  <li>Key index 0 is the leftmost C3</li>
+                  <li>CMD 15 supports grouped per-key RGB</li>
+                  <li>All-off and highlight commands included</li>
                 </ul>
               </article>
               <article class="note-card">
-                <h3>Demo mode</h3>
-                <p>Best for testing, filming, and quick sharing.</p>
+                <h3>Developer friendly</h3>
+                <p>The docs include browser Web MIDI quickstart code, SDK examples, and prompt files you can paste into AI coding tools when building integrations.</p>
                 <ul class="check-list">
-                  <li>No hardware needed</li>
-                  <li>Works from the browser</li>
-                  <li>Great for checking layouts</li>
-                  <li>Useful before a live demo</li>
+                  <li>JavaScript, Python, Node.js, and Swift examples</li>
+                  <li>Open source under MIT</li>
+                  <li>AI assistant prompt and CLAUDE.md template</li>
+                  <li><a href="https://protocol.partykeys.org/" target="_blank" rel="noopener">Open protocol docs →</a></li>
                 </ul>
               </article>
             </div>
@@ -576,7 +693,8 @@
           <h3>Project</h3>
           <ul class="footer-links">
             <li><a href="#games">Game library</a></li>
-            <li><a href="#connect">Connection</a></li>
+            <li><a href="#protocol">Lighting protocol</a></li>
+            <li><a href="https://protocol.partykeys.org/" target="_blank" rel="noopener">Protocol docs</a></li>
             <li><span>Static HTML site</span></li>
             <li><span>Netlify ready</span></li>
           </ul>
@@ -594,6 +712,7 @@
           title: "Glow Game",
           description: "Pixel stage challenge with glowing chord prompts, levels, combos, and boss moments.",
           url: "./games/glow-game/",
+          thumb: "./assets/thumbs/glow-game.png",
           icon: "✦",
           accent: "#ff4242",
           tags: ["Chords", "Levels"]
@@ -602,6 +721,7 @@
           title: "Chord Climber",
           description: "Play the target chord before the timer drains and climb higher with every correct move.",
           url: "./games/chord-climber/",
+          thumb: "./assets/thumbs/chord-climber.png",
           icon: "↟",
           accent: "#ff8c24",
           tags: ["Timing", "Climb"]
@@ -610,6 +730,7 @@
           title: "Fruit Frenzy",
           description: "Slice fruit by matching the lit chord, chase combos, and keep the run alive.",
           url: "./games/fruit-frenzy/",
+          thumb: "./assets/thumbs/fruit-frenzy.png",
           icon: "●",
           accent: "#49c98b",
           tags: ["Arcade", "Combo"]
@@ -618,6 +739,7 @@
           title: "Chord Runner",
           description: "Run, jump, dodge, attack, and collect by playing the target PartyKeys chord.",
           url: "./games/chord-runner/",
+          thumb: "./assets/thumbs/chord-runner.png",
           icon: "→",
           accent: "#8057ff",
           tags: ["Runner", "Action"]
@@ -625,9 +747,20 @@
       ];
 
       const gameGrid = document.getElementById("gameGrid");
+      const videoGrid = document.getElementById("videoGrid");
+
+      const videos = [
+        { title: "PartyKeys Instagram Reel 01", url: "https://www.instagram.com/reel/DZfoWzqlTkw/" },
+        { title: "PartyKeys Instagram Reel 02", url: "https://www.instagram.com/reel/DZp0yU3AUCl/" },
+        { title: "PartyKeys Instagram Reel 03", url: "https://www.instagram.com/reel/DZX6WTQjSQ5/" },
+        { title: "PartyKeys Instagram Reel 04", url: "https://www.instagram.com/reel/DZdC-zdiC5W/" },
+      ];
 
       gameGrid.innerHTML = games.map((game) => `
         <a class="game-card" href="${game.url}" style="--accent:${game.accent}" aria-label="Play ${game.title}">
+          <div class="game-thumb">
+            <img src="${game.thumb}" alt="${game.title} preview" loading="lazy">
+          </div>
           <div class="game-body">
             <div class="game-icon" aria-hidden="true">${game.icon}</div>
             <h3>${game.title}</h3>
@@ -639,6 +772,39 @@
           </div>
         </a>
       `).join("");
+
+      function renderVideo(video) {
+        const isDirectVideo = video.type === "video" || /\.(mp4|webm|ogg)(\?.*)?$/i.test(video.url);
+
+        if (isDirectVideo) {
+          return `
+            <article class="video-card">
+              <video src="${video.url}" controls playsinline preload="metadata" aria-label="${video.title || "PartyKeys video"}"></video>
+            </article>
+          `;
+        }
+
+        return `
+          <article class="video-card">
+            <iframe
+              src="${video.url.replace(/\/$/, "")}/embed"
+              title="${video.title || "PartyKeys Instagram video"}"
+              loading="lazy"
+              allowfullscreen>
+            </iframe>
+          </article>
+        `;
+      }
+
+      videoGrid.innerHTML = videos.length
+        ? videos.map(renderVideo).join("")
+        : `
+          <div class="video-empty">
+            <strong>Instagram video links are ready to add.</strong>
+            <p>Send the Reel or post URLs, and they will appear here as playable cards with the same clean layout as the rest of the Game Center.</p>
+          </div>
+        `;
+
     </script>
   </body>
 </html>
