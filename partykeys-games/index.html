@@ -246,7 +246,24 @@
         background: color-mix(in srgb, var(--accent) 10%, #fff);
       }
 
+      .thumb-fallback {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        color: color-mix(in srgb, var(--accent) 72%, #111);
+        font-size: 20px;
+        font-weight: 900;
+        text-align: center;
+        background:
+          radial-gradient(circle at 22% 18%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 34%),
+          linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, #fff), #fff);
+      }
+
       .game-thumb img {
+        position: relative;
+        z-index: 1;
         display: block;
         width: 100%;
         height: 100%;
@@ -326,13 +343,14 @@
 
       .video-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(260px, 390px));
         gap: 18px;
+        justify-content: start;
         margin-top: 38px;
       }
 
       .video-card {
-        min-height: 420px;
+        aspect-ratio: 9 / 16;
         overflow: hidden;
         border: 1px solid var(--line);
         border-radius: 18px;
@@ -344,7 +362,7 @@
       .video-card video {
         display: block;
         width: 100%;
-        height: 420px;
+        height: 100%;
         border: 0;
         background: #f1f1ef;
       }
@@ -377,6 +395,32 @@
         font-size: 15px;
         line-height: 1.55;
         font-weight: 600;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .cta-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 18px;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 900;
+        box-shadow: 0 12px 28px rgba(17, 17, 15, 0.12);
+      }
+
+      .cta-button:hover {
+        transform: translateY(-1px);
       }
 
       .connect-grid {
@@ -506,7 +550,7 @@
         }
 
         .video-grid {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(2, minmax(220px, 1fr));
         }
 
         .connect-grid,
@@ -552,11 +596,13 @@
           flex-direction: column;
         }
 
-        .video-card,
-        .video-card iframe,
-        .video-card video {
-          min-height: 0;
-          height: 520px;
+        .video-grid {
+          grid-template-columns: minmax(0, 1fr);
+          justify-content: stretch;
+        }
+
+        .video-card {
+          width: min(100%, 390px);
         }
 
         .game-card {
@@ -636,6 +682,9 @@
             <div class="section-kicker">Lighting protocol</div>
             <h2>Build your own PartyKeys experience.</h2>
             <p class="lead">PartyKeys Protocol is the open MIDI + SysEx spec for lighting keys from a browser, script, app, or AI-built prototype. Use it to make your own trainers, games, sequencers, and visual music tools.</p>
+            <div class="cta-row">
+              <a class="cta-button" href="https://protocol.partykeys.org/" target="_blank" rel="noopener">Explore the protocol →</a>
+            </div>
             <div class="connect-grid">
               <article class="note-card">
                 <h3>Per-key RGB control</h3>
@@ -712,7 +761,7 @@
           title: "Glow Game",
           description: "Pixel stage challenge with glowing chord prompts, levels, combos, and boss moments.",
           url: "./games/glow-game/",
-          thumb: "./assets/thumbs/glow-game.png",
+          thumb: "assets/thumbs/glow-game.png",
           icon: "✦",
           accent: "#ff4242",
           tags: ["Chords", "Levels"]
@@ -721,7 +770,7 @@
           title: "Chord Climber",
           description: "Play the target chord before the timer drains and climb higher with every correct move.",
           url: "./games/chord-climber/",
-          thumb: "./assets/thumbs/chord-climber.png",
+          thumb: "assets/thumbs/chord-climber.png",
           icon: "↟",
           accent: "#ff8c24",
           tags: ["Timing", "Climb"]
@@ -730,7 +779,7 @@
           title: "Fruit Frenzy",
           description: "Slice fruit by matching the lit chord, chase combos, and keep the run alive.",
           url: "./games/fruit-frenzy/",
-          thumb: "./assets/thumbs/fruit-frenzy.png",
+          thumb: "assets/thumbs/fruit-frenzy.png",
           icon: "●",
           accent: "#49c98b",
           tags: ["Arcade", "Combo"]
@@ -739,7 +788,7 @@
           title: "Chord Runner",
           description: "Run, jump, dodge, attack, and collect by playing the target PartyKeys chord.",
           url: "./games/chord-runner/",
-          thumb: "./assets/thumbs/chord-runner.png",
+          thumb: "assets/thumbs/chord-runner.png",
           icon: "→",
           accent: "#8057ff",
           tags: ["Runner", "Action"]
@@ -759,7 +808,8 @@
       gameGrid.innerHTML = games.map((game) => `
         <a class="game-card" href="${game.url}" style="--accent:${game.accent}" aria-label="Play ${game.title}">
           <div class="game-thumb">
-            <img src="${game.thumb}" alt="${game.title} preview" loading="lazy">
+            <div class="thumb-fallback" aria-hidden="true">${game.title}</div>
+            <img src="${game.thumb}" alt="${game.title} preview" loading="lazy" decoding="async" onerror="this.remove()">
           </div>
           <div class="game-body">
             <div class="game-icon" aria-hidden="true">${game.icon}</div>
