@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Chord Jump</title>
+  <style>
+    *{box-sizing:border-box}
+    :root{
+      --ink:#171a20;
+      --paper:#ffffff;
+      --green:#1fd98b;
+      --pink:#ff4f88;
+      --sun:#ffd84a;
+      --blue:#35a7ff;
+      --purple:#8c55ff;
+      --orange:#ff9f2d;
+      --safe-vh:100dvh;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      overflow:hidden;
+      color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:#f2f2f2;
+      user-select:none;
+      touch-action:manipulation;
+    }
+    .app{
+      height:var(--safe-vh);
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      background:#eeeeee;
+      padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    header{
+      position:relative;
+      z-index:4;
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:12px;
+      align-items:center;
+      padding:10px 14px;
+      color:#171a20;
+      background:#ffffff;
+      box-shadow:0 1px 0 rgba(23,32,51,.08);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      font-size:20px;
+      font-weight:1000;
+      letter-spacing:.02em;
+      text-shadow:none;
+      white-space:nowrap;
+    }
+    .mark{
+      width:36px;
+      height:36px;
+      display:grid;
+      place-items:center;
+      border:0;
+      border-radius:8px;
+      background:#f1f1f1;
+      color:#172033;
+      box-shadow:0 2px 10px rgba(0,0,0,.08);
+      font-size:23px;
+    }
+    .hud{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(70px,1fr));
+      gap:8px;
+      max-width:560px;
+      width:100%;
+      justify-self:center;
+    }
+    .hud-item{
+      min-width:0;
+      padding:6px 8px;
+      border:0;
+      border-radius:8px;
+      background:#f6f6f6;
+      text-align:center;
+      box-shadow:none;
+    }
+    .hud-label{
+      display:block;
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#858b96;
+    }
+    .hud-value{
+      display:block;
+      margin-top:2px;
+      font-size:18px;
+      line-height:1;
+      font-weight:1000;
+      white-space:nowrap;
+    }
+    .midi-status{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      min-width:142px;
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    .dot{
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      background:#ff466a;
+      box-shadow:0 0 0 3px rgba(255,255,255,.22),0 0 18px rgba(255,70,106,.72);
+    }
+    .dot.on{
+      background:#25ff94;
+      box-shadow:0 0 0 3px rgba(255,255,255,.22),0 0 18px rgba(37,255,148,.9);
+    }
+    .stage-wrap{
+      position:relative;
+      min-height:0;
+      overflow:hidden;
+      isolation:isolate;
+    }
+    canvas{
+      display:block;
+      width:100%;
+      height:100%;
+    }
+    .stage-wrap.shake canvas{animation:shake .36s linear}
+    @keyframes shake{
+      0%,100%{transform:translate(0,0)}
+      20%{transform:translate(-10px,5px)}
+      40%{transform:translate(8px,-5px)}
+      60%{transform:translate(-6px,-4px)}
+      80%{transform:translate(5px,3px)}
+    }
+    .target-card{
+      position:absolute;
+      z-index:3;
+      top:14px;
+      left:50%;
+      width:min(470px,calc(100% - 24px));
+      transform:translateX(-50%);
+      padding:10px 14px 12px;
+      border:0;
+      border-radius:8px;
+      background:rgba(255,255,255,.92);
+      box-shadow:0 10px 25px rgba(25,28,33,.12);
+      text-align:center;
+    }
+    .target-label{
+      font-size:11px;
+      font-weight:1000;
+      color:#65708b;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+    }
+    .target-main{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:14px;
+      min-height:58px;
+    }
+    .target-chord{
+      font-size:44px;
+      line-height:1;
+      font-weight:1000;
+      color:#172033;
+      text-shadow:0 3px 0 rgba(0,0,0,.08);
+    }
+    .distance-pill{
+      display:grid;
+      min-width:124px;
+      padding:7px 10px;
+      border:0;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 4px 12px rgba(23,32,51,.08);
+      font-weight:950;
+    }
+    .distance-pill span:first-child{
+      font-size:10px;
+      color:#65708b;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .distance-pill span:last-child{
+      font-size:17px;
+      color:#135f97;
+    }
+    .power-meter{
+      position:relative;
+      height:13px;
+      margin-top:6px;
+      border:2px solid rgba(23,32,51,.22);
+      border-radius:999px;
+      background:linear-gradient(90deg,#5bc6ff 0 34%,#23d98b 34% 67%,#ff5c88 67% 100%);
+      overflow:hidden;
+    }
+    .power-needle{
+      position:absolute;
+      top:-3px;
+      width:7px;
+      height:18px;
+      left:55%;
+      border-radius:999px;
+      background:#172033;
+      box-shadow:0 0 0 2px #fff;
+      transform:translateX(-50%);
+      transition:left .18s ease;
+    }
+    .toast{
+      position:absolute;
+      z-index:5;
+      top:132px;
+      left:50%;
+      transform:translate(-50%,-8px) scale(.96);
+      min-width:220px;
+      padding:11px 16px;
+      border:0;
+      border-radius:8px;
+      background:#fff;
+      text-align:center;
+      font-size:24px;
+      font-weight:1000;
+      opacity:0;
+      pointer-events:none;
+      box-shadow:0 12px 24px rgba(23,32,51,.18);
+      transition:opacity .18s ease, transform .18s ease;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translate(-50%,0) scale(1);
+    }
+    .overlay{
+      position:absolute;
+      inset:0;
+      z-index:8;
+      display:grid;
+      place-items:center;
+      padding:20px;
+      background:rgba(16,27,45,.25);
+      backdrop-filter:blur(3px);
+    }
+    .overlay.hidden{display:none}
+    .modal{
+      width:min(430px,100%);
+      padding:24px;
+      border:4px solid var(--ink);
+      border-radius:8px;
+      background:#fff9e8;
+      box-shadow:0 12px 0 rgba(23,32,51,.28);
+      text-align:center;
+    }
+    .modal h1{
+      margin:0 0 8px;
+      font-size:44px;
+      line-height:1;
+      letter-spacing:0;
+    }
+    .modal p{
+      margin:0 0 18px;
+      color:#59647e;
+      font-weight:800;
+      line-height:1.35;
+    }
+    .actions{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    button{
+      appearance:none;
+      border:3px solid var(--ink);
+      border-radius:8px;
+      padding:11px 16px;
+      background:#ffd84a;
+      color:#172033;
+      box-shadow:0 5px 0 rgba(23,32,51,.24);
+      font:inherit;
+      font-weight:1000;
+      cursor:pointer;
+    }
+    button:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(23,32,51,.24)}
+    button.secondary{background:#fff}
+    .keyboard-panel{
+      position:relative;
+      z-index:4;
+      padding:9px 12px 13px;
+      background:linear-gradient(180deg,#262833,#151821);
+      border-top:1px solid rgba(255,255,255,.18);
+      flex-shrink:0;
+    }
+    .keyboard-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      width:min(980px,100%);
+      margin:0 auto 7px;
+      color:#eaf1ff;
+      font-size:12px;
+      font-weight:900;
+    }
+    .hint{
+      min-width:0;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      color:#ffeaa3;
+    }
+    .keys{
+      position:relative;
+      display:flex;
+      width:min(980px,100%);
+      height:92px;
+      margin:0 auto;
+      padding:7px;
+      border:3px solid #050814;
+      border-radius:8px;
+      background:#0b1020;
+      box-shadow:0 8px 0 rgba(0,0,0,.31) inset;
+      touch-action:none;
+    }
+    .key{
+      position:relative;
+      display:flex;
+      justify-content:center;
+      align-items:flex-end;
+      min-width:0;
+      margin:0 1px;
+      padding-bottom:7px;
+      border-radius:0 0 6px 6px;
+      border:1px solid rgba(23,32,51,.28);
+      font-size:10px;
+      font-weight:1000;
+      transition:filter .1s ease, transform .1s ease, box-shadow .12s ease;
+    }
+    .key.white{
+      flex:1 1 0;
+      height:100%;
+      background:#f6f7fb;
+      color:#35405a;
+    }
+    .key.black{
+      flex:.62 1 0;
+      height:62%;
+      background:#20283f;
+      color:#fff;
+      z-index:2;
+      margin-left:-7px;
+      margin-right:-7px;
+      border-color:#050814;
+      border-radius:0 0 5px 5px;
+    }
+    .key.lit{
+      filter:saturate(1.3) brightness(1.1);
+      box-shadow:0 0 20px currentColor,0 -9px 0 rgba(255,255,255,.28) inset;
+      transform:translateY(-4px);
+    }
+    .key.pressed{
+      transform:translateY(4px) scale(.98);
+      filter:saturate(1.55) brightness(1.05);
+    }
+    .key .pc-label{
+      position:relative;
+      z-index:3;
+      text-shadow:0 1px 0 rgba(255,255,255,.35);
+    }
+    @media (max-width:760px){
+      header{
+        grid-template-columns:1fr auto;
+        align-items:start;
+        gap:8px;
+        padding:8px 10px;
+      }
+      .brand{font-size:17px}
+      .mark{width:32px;height:32px;font-size:20px}
+      .hud{
+        grid-column:1 / -1;
+        order:3;
+        max-width:none;
+        grid-template-columns:repeat(4,1fr);
+      }
+      .hud-item{padding:5px 6px}
+      .hud-label{font-size:9px}
+      .midi-status{min-width:auto;font-size:11px}
+      .hud-value{font-size:16px}
+      .target-card{top:10px;padding:8px 10px;width:min(410px,calc(100% - 18px))}
+      .target-label{font-size:10px}
+      .target-main{gap:10px;min-height:50px}
+      .target-chord{font-size:38px}
+      .distance-pill{min-width:104px}
+      .toast{top:116px;font-size:20px}
+      .modal{padding:20px}
+      .modal h1{font-size:38px}
+      .modal p{font-size:15px}
+      button{padding:10px 13px}
+      .keyboard-panel{padding:8px 8px 10px}
+      .keyboard-top{font-size:11px}
+      .keys{height:78px}
+    }
+    @media (max-width:620px) and (orientation:portrait){
+      .app{grid-template-rows:auto minmax(280px,1fr) auto}
+      header{grid-template-columns:1fr;justify-items:stretch}
+      .brand{justify-content:center}
+      .midi-status{justify-content:center}
+      .hud{order:2;grid-column:auto;grid-template-columns:repeat(4,1fr)}
+      .stage-wrap{min-height:330px}
+      .target-card{top:8px}
+      .target-chord{font-size:34px}
+      .distance-pill{min-width:96px;padding:6px 8px}
+      .distance-pill span:last-child{font-size:15px}
+      .power-meter{height:11px}
+      .keyboard-top{align-items:flex-start;font-size:10px}
+      .hint{white-space:normal;line-height:1.3}
+      .keys{height:72px;padding:6px 5px}
+      .key{font-size:8px;margin:0}
+      .key.black{margin-left:-5px;margin-right:-5px}
+      .modal{width:min(360px,100%)}
+      .modal h1{font-size:34px}
+    }
+    @media (max-height:520px) and (orientation:landscape){
+      .app{grid-template-rows:auto 1fr auto}
+      header{
+        grid-template-columns:auto 1fr auto;
+        padding:5px 9px;
+        gap:8px;
+      }
+      .brand{font-size:15px}
+      .mark{width:28px;height:28px;font-size:18px}
+      .hud{grid-column:auto;order:initial;max-width:430px;gap:5px}
+      .hud-item{padding:3px 5px}
+      .hud-label{font-size:8px}
+      .hud-value{font-size:13px}
+      .midi-status{font-size:10px;min-width:118px}
+      .target-card{top:7px;width:min(360px,calc(100% - 16px));padding:7px 9px}
+      .target-main{min-height:38px}
+      .target-chord{font-size:30px}
+      .distance-pill{min-width:90px;padding:5px 8px}
+      .distance-pill span:first-child{font-size:8px}
+      .distance-pill span:last-child{font-size:13px}
+      .power-meter{height:10px}
+      .toast{top:86px;font-size:17px;padding:8px 12px}
+      .keyboard-panel{padding:5px 8px 7px}
+      .keyboard-top{margin-bottom:4px;font-size:9px}
+      .keys{height:48px;padding:4px}
+      .key{padding-bottom:3px;font-size:7px}
+      .key.black{margin-left:-5px;margin-right:-5px}
+      .modal{width:min(410px,100%);padding:15px}
+      .modal h1{font-size:32px}
+      .modal p{font-size:13px;margin-bottom:12px}
+      button{padding:8px 12px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><div class="mark">♪</div><span>Chord Jump</span></div>
+    <div class="hud">
+      <div class="hud-item"><span class="hud-label">Score</span><span class="hud-value" id="score">0</span></div>
+      <div class="hud-item"><span class="hud-label">Combo</span><span class="hud-value" id="combo">x0</span></div>
+      <div class="hud-item"><span class="hud-label">Level</span><span class="hud-value" id="level">1</span></div>
+      <div class="hud-item"><span class="hud-label">Best</span><span class="hud-value" id="best">0</span></div>
+    </div>
+    <div class="midi-status"><span class="dot" id="midiDot"></span><span id="midiText">No MIDI device</span></div>
+  </header>
+
+  <main class="stage-wrap" id="stageWrap">
+    <canvas id="game"></canvas>
+    <div class="target-card">
+      <div class="target-label" id="targetLabel">Target Chord</div>
+      <div class="target-main">
+        <div class="target-chord" id="targetChord">C</div>
+        <div class="distance-pill"><span>Hold Need</span><span id="jumpNeed">Normal</span></div>
+      </div>
+      <div class="power-meter"><div class="power-needle" id="powerNeedle"></div></div>
+    </div>
+    <div class="toast" id="toast">Ready</div>
+    <div class="overlay" id="startOverlay">
+      <div class="modal">
+        <h1>Chord Jump</h1>
+        <p>Play and hold the glowing chord. Release sooner for short jumps, hold longer for far jumps.</p>
+        <div class="actions">
+          <button id="startBtn">Start</button>
+          <button class="secondary" id="connectBtn">Connect MIDI</button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay hidden" id="gameOverOverlay">
+      <div class="modal">
+        <h1>Game Over</h1>
+        <p id="finalText">Score: 0</p>
+        <div class="actions">
+          <button id="restartBtn">Restart</button>
+          <button class="secondary" id="retryMidiBtn">Reconnect MIDI</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="keyboard-panel">
+    <div class="keyboard-top">
+      <div class="hint">Computer test: A=C, S=G, D=Am, F=F, J=Dm, K=Em</div>
+      <div id="heldReadout">Held: -</div>
+    </div>
+    <div class="keys" id="keys"></div>
+  </section>
+</div>
+
+<script>
+function syncViewportHeight(){
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--safe-vh', `${Math.max(320,h)}px`);
+}
+syncViewportHeight();
+window.addEventListener('resize', syncViewportHeight);
+window.addEventListener('orientationchange', () => setTimeout(syncViewportHeight,120));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', syncViewportHeight);
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const stageWrap = document.getElementById('stageWrap');
+const keysEl = document.getElementById('keys');
+const midiDot = document.getElementById('midiDot');
+const midiText = document.getElementById('midiText');
+const targetChordEl = document.getElementById('targetChord');
+const targetLabelEl = document.getElementById('targetLabel');
+const jumpNeedEl = document.getElementById('jumpNeed');
+const powerNeedle = document.getElementById('powerNeedle');
+const toast = document.getElementById('toast');
+const heldReadout = document.getElementById('heldReadout');
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const KEY_IS_BLACK = [false,true,false,true,false,false,true,false,true,false,true,false];
+const DEFAULT_COLORS = [
+  '#ff9f2d','#ff8a2d','#ff7731','#ff6538','#ff5549','#ff4f67',
+  '#ff4f88','#f84faf','#d95ce0','#af68ff','#8c72ff','#6c83ff',
+  '#4c9dff','#35b8ff','#2ed2ff','#29e0d6','#23dfaa','#1fd98b',
+  '#54dc72','#8fe05b','#c8dc45','#ffd84a','#ffc243','#ffac39',
+  '#ff9235','#ff7460','#ff5b88','#df5cff','#a866ff','#687cff',
+  '#31a9ff','#20caca','#1fd98b','#b6e553','#ffd84a','#ff8840'
+];
+const CHORDS = {
+  C:  {pc:[0,4,7],  keys:[12,16,19], color:[255,216,74]},
+  G:  {pc:[7,11,2], keys:[19,23,26], color:[53,167,255]},
+  Am: {pc:[9,0,4],  keys:[21,24,28], color:[255,79,136]},
+  F:  {pc:[5,9,0],  keys:[17,21,24], color:[31,217,139]},
+  Dm: {pc:[2,5,9],  keys:[14,17,21], color:[140,85,255]},
+  Em: {pc:[4,7,11], keys:[16,19,23], color:[255,159,45]}
+};
+const CHORD_NAMES = ['C','G','Am','F','Dm','Em'];
+const COMPUTER_CHORDS = {
+  KeyA:'C',
+  KeyS:'G',
+  KeyD:'Am',
+  KeyF:'F',
+  KeyJ:'Dm',
+  KeyK:'Em'
+};
+const DIFFICULTY_LABELS = ['Short','Normal','Far'];
+
+let midiIn = null;
+let midiOut = null;
+let midiAccess = null;
+let audioCtx = null;
+let masterGain = null;
+let bgTimer = null;
+let bgStep = 0;
+let sustainChord = null;
+let ledState = Array.from({length:36},()=>[0,0,0]);
+let ledTimers = [];
+let ledToken = 0;
+let midiLightError = false;
+const heldNotes = new Map();
+let chordTimer = null;
+let keyboardBuilt = false;
+let touchChord = null;
+
+const state = {
+  running:false,
+  over:false,
+  score:0,
+  combo:0,
+  level:1,
+  best:Number(localStorage.getItem('chordJumpBest') || 0),
+  current:0,
+  target:null,
+  charge:null,
+  platforms:[],
+  player:{x:0,y:0,tx:0,ty:0,scaleX:1,squash:0,spin:0},
+  move:null,
+  cameraX:0,
+  screenW:900,
+  screenH:520,
+  scene:{x:0,y:0,w:900,h:520},
+  viewW:900,
+  viewH:520,
+  particles:[],
+  rings:[],
+  clouds:[],
+  lastTime:0,
+  lastVelocity:78
+};
+
+function hexToRgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+function encCh(v){return [Math.floor(v/128),v%128]}
+function buildCmd15(groups){
+  const hdr = [0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x15,groups.length];
+  const body = [];
+  groups.forEach(g => body.push(...encCh(g.r),...encCh(g.g),...encCh(g.b),g.keys.length,...g.keys));
+  return new Uint8Array([...hdr,...body,0xF7]);
+}
+function clearLedTimers(){
+  ledToken++;
+  ledTimers.forEach(id=>clearTimeout(id));
+  ledTimers = [];
+}
+function queueLed(delay,token,fn){
+  const id = setTimeout(()=>{
+    if (token === ledToken) fn();
+  },delay);
+  ledTimers.push(id);
+}
+function sendLED(data){
+  if (!midiOut) return false;
+  try{
+    midiOut.send(data);
+    return true;
+  }catch(err){
+    if (!midiLightError) showToast('MIDI lights need SysEx');
+    midiLightError = true;
+    return false;
+  }
+}
+function ledEnterMode(){
+  sendLED([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x0F,0x01,0xF7]);
+}
+function ledAllOff(){
+  clearLedTimers();
+  sendLED([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x71,0x00,0xF7]);
+  ledState = Array.from({length:36},()=>[0,0,0]);
+  renderKeyboard();
+}
+function ledHighlightChord(name){
+  const def = CHORDS[name];
+  if (!def) return;
+  const [r,g,b] = def.color;
+  const clearCmd = [0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x71,0x00,0xF7];
+  const lightCmd = buildCmd15([{r,g,b,keys:def.keys}]);
+  clearLedTimers();
+  const token = ledToken;
+  if (midiOut){
+    ledEnterMode();
+    queueLed(35,token,()=>sendLED(clearCmd));
+    queueLed(85,token,()=>sendLED(lightCmd));
+    queueLed(155,token,()=>sendLED(lightCmd));
+    queueLed(320,token,()=>sendLED(lightCmd));
+  }
+  for(let i=0;i<36;i++) ledState[i] = def.keys.includes(i) ? [r,g,b] : [0,0,0];
+  renderKeyboard();
+}
+function ledFlash(r,g,b,ms=230){
+  clearLedTimers();
+  const token = ledToken;
+  if (midiOut) {
+    ledEnterMode();
+    queueLed(35,token,()=>sendLED(buildCmd15([{r,g,b,keys:[...Array(36).keys()]}])));
+  }
+  ledState = Array.from({length:36},()=>[r,g,b]);
+  renderKeyboard();
+  setTimeout(()=>{
+    if (token !== ledToken) return;
+    ledAllOff();
+  },ms);
+}
+
+function buildKeyboard(){
+  if (keyboardBuilt) return;
+  keyboardBuilt = true;
+  for(let i=0;i<36;i++){
+    const note = 48 + i;
+    const pc = note % 12;
+    const el = document.createElement('div');
+    el.className = 'key ' + (KEY_IS_BLACK[pc] ? 'black' : 'white');
+    el.dataset.note = String(note);
+    el.dataset.index = String(i);
+    el.innerHTML = KEY_IS_BLACK[pc] ? '<span class="pc-label"></span>' : '<span class="pc-label">'+NOTE_NAMES[pc]+'</span>';
+    el.addEventListener('pointerdown',onVirtualKeyDown);
+    el.addEventListener('pointerup',onVirtualKeyUp);
+    el.addEventListener('pointercancel',onVirtualKeyUp);
+    el.addEventListener('pointerleave',onVirtualKeyLeave);
+    keysEl.appendChild(el);
+  }
+  ledState = Array.from({length:36},()=>[0,0,0]);
+  renderKeyboard();
+}
+function renderKeyboard(){
+  buildKeyboard();
+  [...keysEl.children].forEach((el,i)=>{
+    const [r,g,b] = ledState[i] || [0,0,0];
+    const note = 48 + i;
+    const lit = r + g + b > 54;
+    el.classList.toggle('lit', lit);
+    el.classList.toggle('pressed', heldNotes.has(note));
+    el.style.background = lit ? `rgb(${r},${g},${b})` : '';
+    el.style.color = lit ? '#ffffff' : '';
+    el.style.boxShadow = lit ? `0 0 24px rgba(${r},${g},${b},.95), 0 -12px 0 rgba(255,255,255,.24) inset` : '';
+  });
+  const held = [...new Set([...heldNotes.keys()].sort((a,b)=>a-b).map(n=>NOTE_NAMES[n%12]))];
+  heldReadout.textContent = 'Held: ' + (held.length ? held.join(' ') : '-');
+}
+
+function onVirtualKeyDown(event){
+  event.preventDefault();
+  const key = event.currentTarget;
+  key.setPointerCapture?.(event.pointerId);
+  initAudio();
+  if (!state.running){
+    resetGame();
+    setTimeout(()=>pressVirtualKey(key),30);
+    return;
+  }
+  pressVirtualKey(key);
+}
+function pressVirtualKey(key){
+  const index = Number(key.dataset.index);
+  const note = Number(key.dataset.note);
+  const targetChord = state.target?.chord;
+  const targetDef = targetChord ? CHORDS[targetChord] : null;
+  if (targetDef && targetDef.keys.includes(index)){
+    touchChord = targetChord;
+    targetDef.keys.forEach(k=>heldNotes.set(48+k,92));
+    renderKeyboard();
+    handleChordAttempt(targetChord);
+    return;
+  }
+  heldNotes.set(note,88);
+  playKey(note,.72);
+  renderKeyboard();
+  scheduleChordCheck();
+}
+function onVirtualKeyUp(event){
+  event.preventDefault();
+  const key = event.currentTarget;
+  key.releasePointerCapture?.(event.pointerId);
+  releaseVirtualKey(key);
+}
+function onVirtualKeyLeave(event){
+  if (event.pointerType === 'mouse') return;
+  releaseVirtualKey(event.currentTarget);
+}
+function releaseVirtualKey(key){
+  if (touchChord){
+    if (state.charge && state.charge.chord === touchChord) finishCharge();
+    CHORDS[touchChord].keys.forEach(k=>heldNotes.delete(48+k));
+    touchChord = null;
+    renderKeyboard();
+    return;
+  }
+  heldNotes.delete(Number(key.dataset.note));
+  renderKeyboard();
+}
+
+async function connectMIDI(){
+  if (!navigator.requestMIDIAccess){
+    setMIDIStatus(false);
+    return;
+  }
+  try{
+    midiAccess = await navigator.requestMIDIAccess({sysex:true});
+    setupMIDIPorts();
+    midiAccess.onstatechange = setupMIDIPorts;
+  }catch(err){
+    setMIDIStatus(false);
+    showToast('MIDI access denied');
+  }
+}
+function setupMIDIPorts(){
+  midiIn = null;
+  midiOut = null;
+  midiLightError = false;
+  for (const input of midiAccess.inputs.values()){
+    if (input.name.toLowerCase().includes('partykeys') || !midiIn) midiIn = input;
+  }
+  for (const output of midiAccess.outputs.values()){
+    if (output.name.toLowerCase().includes('partykeys') || !midiOut) midiOut = output;
+  }
+  if (midiIn) midiIn.onmidimessage = onMIDIMessage;
+  if (midiOut) {
+    ledEnterMode();
+    setTimeout(()=>ledHighlightChord(state.target ? state.target.chord : targetChordEl.textContent),140);
+  }
+  setMIDIStatus(Boolean(midiIn || midiOut));
+}
+function setMIDIStatus(connected){
+  midiText.textContent = connected ? 'MIDI connected' : 'No MIDI device';
+  midiDot.classList.toggle('on', connected);
+}
+function onMIDIMessage(e){
+  const [status,note,velocity] = e.data;
+  const type = status & 0xF0;
+  if (type === 0x90 && velocity > 0){
+    initAudio();
+    heldNotes.set(note, velocity);
+    playKey(note, velocity / 127);
+    scheduleChordCheck();
+  } else if (type === 0x80 || (type === 0x90 && velocity === 0)){
+    maybeReleaseCharge(note);
+    heldNotes.delete(note);
+  }
+  renderKeyboard();
+}
+function scheduleChordCheck(){
+  clearTimeout(chordTimer);
+  chordTimer = setTimeout(checkChordAttempt, 42);
+}
+function pitchClassSet(){
+  return new Set([...heldNotes.keys()].map(n=>n%12));
+}
+function chordVelocity(def){
+  const velocities = [];
+  for (const [note,vel] of heldNotes.entries()){
+    if (def.pc.includes(note % 12)) velocities.push(vel);
+  }
+  return velocities.length ? Math.round(velocities.reduce((a,b)=>a+b,0) / velocities.length) : 78;
+}
+function detectChord(){
+  const pcs = pitchClassSet();
+  if (!pcs.size) return null;
+  for (const name of CHORD_NAMES){
+    const def = CHORDS[name];
+    const hasAll = def.pc.every(pc => pcs.has(pc));
+    const hasOnlyChordTones = [...pcs].every(pc => def.pc.includes(pc));
+    if (hasAll && hasOnlyChordTones) return name;
+  }
+  if (pcs.size >= 3) return 'wrong';
+  return null;
+}
+function checkChordAttempt(){
+  if (!state.running || state.move || !state.target || state.charge) return;
+  const detected = detectChord();
+  if (!detected) return;
+  if (detected === 'wrong'){
+    wrongChord();
+    return;
+  }
+  handleChordAttempt(detected);
+}
+function handleChordAttempt(name){
+  if (!state.running || state.move || !state.target) return;
+  playPressedChord(name, false);
+  if (name === state.target.chord) startCharge(name);
+  else wrongChord(name);
+}
+
+function initAudio(){
+  if (!audioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) audioCtx = new Ctx();
+  }
+  if (audioCtx && !masterGain){
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = .52;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  startBackgroundMusic();
+}
+function tone(freq,dur=.12,type='sine',gain=.05,delay=0,cutoff=2400){
+  if (!audioCtx || !masterGain) return;
+  const t = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const amp = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq,t);
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(cutoff,t);
+  amp.gain.setValueAtTime(.0001,t);
+  amp.gain.exponentialRampToValueAtTime(gain,t+.018);
+  amp.gain.exponentialRampToValueAtTime(gain*.36,t+dur*.45);
+  amp.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  osc.connect(filter).connect(amp).connect(masterGain);
+  osc.start(t);
+  osc.stop(t+dur+.05);
+}
+function noteFreq(note){return 440 * Math.pow(2,(note-69)/12)}
+function playKey(note,vel=.7){tone(noteFreq(note),.12,'sine',.012 + vel*.018,0,1600)}
+function playPressedChord(name,loud=false){
+  const def = CHORDS[name];
+  if (!def) return;
+  const gain = loud ? .042 : .027;
+  def.keys.forEach((k,i)=>{
+    tone(noteFreq(60+k),.42,'sine',gain,.035*i,1450);
+    tone(noteFreq(72+k),.16,'triangle',gain*.22,.05+.035*i,2200);
+  });
+}
+function startSustainChord(name){
+  stopSustainChord();
+  if (!audioCtx || !masterGain || !CHORDS[name]) return;
+  const def = CHORDS[name];
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(720,audioCtx.currentTime);
+  gain.gain.setValueAtTime(.003,audioCtx.currentTime);
+  filter.connect(gain).connect(masterGain);
+  const oscillators = def.keys.map((k,i)=>{
+    const osc = audioCtx.createOscillator();
+    osc.type = i === 0 ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(noteFreq(60+k),audioCtx.currentTime);
+    osc.detune.setValueAtTime((i-1)*2,audioCtx.currentTime);
+    osc.connect(filter);
+    osc.start();
+    return osc;
+  });
+  sustainChord = {name,gain,filter,oscillators};
+}
+function updateSustainChord(level){
+  if (!audioCtx || !sustainChord) return;
+  const gain = .005 + level * .034;
+  const cutoff = 720 + level * 760;
+  sustainChord.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+  sustainChord.gain.gain.setTargetAtTime(gain,audioCtx.currentTime,.04);
+  sustainChord.filter.frequency.setTargetAtTime(cutoff,audioCtx.currentTime,.05);
+}
+function stopSustainChord(){
+  if (!audioCtx || !sustainChord) {
+    sustainChord = null;
+    return;
+  }
+  const active = sustainChord;
+  active.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+  active.gain.gain.setTargetAtTime(.0001,audioCtx.currentTime,.035);
+  active.oscillators.forEach(osc=>{
+    try{osc.stop(audioCtx.currentTime + .16)}catch(err){}
+  });
+  setTimeout(()=>{
+    try{active.gain.disconnect()}catch(err){}
+    try{active.filter.disconnect()}catch(err){}
+  },240);
+  sustainChord = null;
+}
+function playGood(){
+  tone(523,.12,'triangle',.035,0,2200);
+  tone(784,.14,'sine',.032,.06,2200);
+  tone(1046,.2,'triangle',.026,.13,2600);
+}
+function playBad(){
+  tone(155,.18,'triangle',.035,0,900);
+  tone(110,.24,'sine',.03,.08,760);
+}
+function startBackgroundMusic(){
+  if (!audioCtx || bgTimer) return;
+  bgStep = 0;
+  bgTimer = setInterval(playBackgroundStep,260);
+}
+function playBackgroundStep(){
+  if (!audioCtx || !masterGain || !state.running || state.over) return;
+  const scale = [60,64,67,72,67,64,59,62];
+  const t = bgStep % 16;
+  if (t % 2 === 0) tone(noteFreq(scale[(t/2)%scale.length]),.22,'sine',.015,0,1150);
+  if (t === 4 || t === 12) tone(noteFreq(36 + (state.level % 2 ? 0 : 5)),.28,'sine',.021,0,700);
+  bgStep++;
+}
+
+function resize(){
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1,2);
+  canvas.width = Math.max(320,Math.floor(rect.width*dpr));
+  canvas.height = Math.max(340,Math.floor(rect.height*dpr));
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  state.screenW = rect.width;
+  state.screenH = rect.height;
+  const sceneW = Math.min(rect.width, rect.height * 16 / 9);
+  const sceneH = sceneW * 9 / 16;
+  state.scene = {x:(rect.width-sceneW)/2,y:(rect.height-sceneH)/2,w:sceneW,h:sceneH};
+  state.viewW = sceneW;
+  state.viewH = sceneH;
+  if (!state.running) render();
+}
+window.addEventListener('resize',resize);
+
+function resetGame(){
+  state.running = true;
+  state.over = false;
+  state.score = 0;
+  state.combo = 0;
+  state.level = 1;
+  state.current = 0;
+  state.platforms = [];
+  state.particles = [];
+  state.rings = [];
+  state.clouds = [];
+  state.move = null;
+  state.charge = null;
+  stopSustainChord();
+  seedWorld();
+  const start = state.platforms[0];
+  state.player = {x:start.x,y:start.y-56,tx:start.x,ty:start.y-56,scaleX:1,squash:0,spin:0};
+  state.cameraX = 0;
+  chooseTarget();
+  updateHUD();
+  document.getElementById('startOverlay').classList.add('hidden');
+  document.getElementById('gameOverOverlay').classList.add('hidden');
+  state.lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+function seedWorld(){
+  const yBase = Math.max(300,state.viewH * .68);
+  const colors = ['#6d42b5','#34b96f','#e1a528','#d94b42','#2fa56d','#d46a2d','#3d8848'];
+  const shapes = ['pipe','brick','pipe','crate','pipe','coinbox'];
+  const laneOffsets = [34,-42,-92,-34,42,86,18,-58];
+  let x = Math.max(150,state.viewW * .22);
+  state.platforms.push({index:0,x,y:yBase,w:138,h:52,chord:null,need:1,color:colors[0],shape:'pipe'});
+  for(let i=1;i<80;i++){
+    const level = 1 + Math.floor(i / 7);
+    const need = weightedNeed(level);
+    const gap = need === 0 ? 176 : need === 1 ? 248 : 318;
+    const turnPush = Math.floor(i / 8) % 2 ? -34 : 28;
+    const y = yBase + laneOffsets[i % laneOffsets.length] + turnPush;
+    x += gap;
+    const chord = CHORD_NAMES[(i + Math.floor(Math.random()*CHORD_NAMES.length)) % CHORD_NAMES.length];
+    state.platforms.push({
+      index:i,
+      x,
+      y,
+      w:need === 2 ? 122 : 136,
+      h:need === 0 ? 28 : 48,
+      chord,
+      need,
+      color:colors[i%colors.length],
+      shape:shapes[i%shapes.length]
+    });
+  }
+  for(let i=0;i<8;i++) {
+    state.clouds.push({
+      x:360 + i*620 + (i%2)*160,
+      y:62 + (i%3)*58,
+      s:46 + (i%3)*10,
+      kind:i%2 ? 'box' : 'cylinder'
+    });
+  }
+}
+function weightedNeed(level){
+  const r = Math.random();
+  if (level < 2) return r < .32 ? 0 : r < .82 ? 1 : 2;
+  if (level < 5) return r < .25 ? 0 : r < .67 ? 1 : 2;
+  return r < .2 ? 0 : r < .55 ? 1 : 2;
+}
+function chooseTarget(){
+  const next = state.platforms[state.current + 1];
+  if (!next) return;
+  state.target = next;
+  targetChordEl.textContent = next.chord;
+  targetChordEl.style.color = `rgb(${CHORDS[next.chord].color.join(',')})`;
+  targetLabelEl.textContent = 'Target Chord';
+  jumpNeedEl.textContent = DIFFICULTY_LABELS[next.need];
+  powerNeedle.style.left = '0%';
+  ledHighlightChord(next.chord);
+}
+function velocityBand(v){
+  if (v < 56) return 0;
+  if (v < 96) return 1;
+  return 2;
+}
+function durationToVelocity(ms){
+  if (ms < 260) return 42;
+  if (ms < 760) return 78;
+  return 116;
+}
+function chargePercent(ms){
+  return clamp(ms / 1050, 0, 1);
+}
+function startCharge(chord){
+  if (!state.running || state.move || state.charge) return;
+  state.charge = {chord,start:performance.now()};
+  targetLabelEl.textContent = 'Hold... release to jump';
+  powerNeedle.style.left = '0%';
+  startSustainChord(chord);
+  showToast('Hold Chord');
+}
+function finishCharge(){
+  if (!state.charge || !state.running || state.move) return;
+  const charge = state.charge;
+  const heldMs = performance.now() - charge.start;
+  state.charge = null;
+  stopSustainChord();
+  const velocity = durationToVelocity(heldMs);
+  powerNeedle.style.left = (velocity / 127 * 100) + '%';
+  playPressedChord(charge.chord, velocity > 88);
+  launchJump(velocity);
+}
+function maybeReleaseCharge(note){
+  if (!state.charge) return;
+  const def = CHORDS[state.charge.chord];
+  if (def && def.pc.includes(note % 12)) finishCharge();
+}
+function launchJump(velocity){
+  const target = state.target;
+  const band = velocityBand(velocity);
+  const fromPlatform = state.platforms[state.current];
+  const from = {x:state.player.x,y:state.player.y};
+  const landingY = target.y - 56;
+  const baseTo = {x:target.x,y:landingY};
+  let result = 'success';
+  let to = baseTo;
+  if (band < target.need){
+    result = 'short';
+    to = {x:target.x - target.w*.75 - 38,y:landingY + 100};
+  } else if (band > target.need){
+    result = 'long';
+    to = {x:target.x + target.w*.75 + 52,y:landingY + 110};
+  }
+  const distance = Math.abs(to.x - fromPlatform.x);
+  state.move = {
+    from,
+    to,
+    t:0,
+    dur:result === 'success' ? .68 : .82,
+    arc:82 + band*34 + Math.min(52,distance*.08),
+    result,
+    chord:target.chord
+  };
+  state.player.scaleX = to.x >= from.x ? 1 : -1;
+  targetLabelEl.textContent = result === 'success' ? 'Jump!' : (result === 'short' ? 'Too Soft!' : 'Too Strong!');
+  spawnBurst(from.x,from.y+66,CHORDS[target.chord].color,24,1.4);
+  if (result === 'success') {
+    ledFlash(31,217,139,180);
+    playGood();
+  } else {
+    ledFlash(255,54,88,240);
+    playBad();
+  }
+}
+function finishJump(move){
+  if (move.result === 'success'){
+    state.current++;
+    state.combo++;
+    state.level = 1 + Math.floor(state.current / 5);
+    const add = 100 + state.combo*35 + state.level*20;
+    state.score += add;
+    state.best = Math.max(state.best,state.score);
+    localStorage.setItem('chordJumpBest',String(Math.floor(state.best)));
+    state.player.squash = .55;
+    spawnBurst(state.player.x,state.player.y+72,CHORDS[move.chord].color,34,2);
+    state.rings.push({x:state.player.x,y:state.player.y+50,r:12,life:.45,color:'rgba(255,255,255,.8)'});
+    showToast('Perfect +'+add);
+    updateHUD();
+    setTimeout(()=>{ if(state.running) chooseTarget(); },210);
+  } else {
+    state.combo = 0;
+    updateHUD();
+    showShake();
+    showToast(move.result === 'short' ? 'Too Little Velocity' : 'Too Much Velocity');
+    setTimeout(endGame,420);
+  }
+}
+function wrongChord(name){
+  stopSustainChord();
+  state.charge = null;
+  state.combo = 0;
+  targetLabelEl.textContent = 'Wrong Chord';
+  if (name) targetChordEl.textContent = name + ' ×';
+  ledFlash(255,54,88,260);
+  playBad();
+  spawnBurst(state.player.x,state.player.y+38,[255,54,88],22,1.4);
+  showShake();
+  showToast('Wrong Chord');
+  updateHUD();
+  setTimeout(()=>{ if(state.running && state.target) {
+    targetChordEl.textContent = state.target.chord;
+    targetLabelEl.textContent = 'Target Chord';
+    ledHighlightChord(state.target.chord);
+  } },620);
+}
+function endGame(){
+  state.running = false;
+  state.over = true;
+  state.charge = null;
+  stopSustainChord();
+  ledAllOff();
+  document.getElementById('finalText').textContent = 'Score: ' + Math.floor(state.score) + ' · Best: ' + Math.floor(state.best) + ' · Combo: x' + state.combo;
+  document.getElementById('gameOverOverlay').classList.remove('hidden');
+}
+function updateHUD(){
+  document.getElementById('score').textContent = String(Math.floor(state.score));
+  document.getElementById('combo').textContent = 'x' + state.combo;
+  document.getElementById('level').textContent = String(state.level);
+  document.getElementById('best').textContent = String(Math.floor(state.best));
+}
+function showToast(text){
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(()=>toast.classList.remove('show'),820);
+}
+function showShake(){
+  stageWrap.classList.remove('shake');
+  void stageWrap.offsetWidth;
+  stageWrap.classList.add('shake');
+}
+
+function loop(ts){
+  if (!state.running) return;
+  const dt = Math.min((ts - state.lastTime)/1000,.05);
+  state.lastTime = ts;
+  updateChargeMeter();
+  updatePlayer(dt);
+  updateEffects(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+function updateChargeMeter(){
+  if (!state.charge) return;
+  const ms = performance.now() - state.charge.start;
+  const level = chargePercent(ms);
+  powerNeedle.style.left = (level * 100) + '%';
+  updateSustainChord(level);
+}
+function updatePlayer(dt){
+  const p = state.player;
+  if (state.move){
+    const m = state.move;
+    m.t = Math.min(1,m.t + dt / m.dur);
+    const ease = m.t < .5 ? 2*m.t*m.t : 1 - Math.pow(-2*m.t+2,2)/2;
+    p.x = m.from.x + (m.to.x - m.from.x) * ease;
+    p.y = m.from.y + (m.to.y - m.from.y) * ease - Math.sin(Math.PI*m.t) * m.arc;
+    p.spin = Math.sin(Math.PI*m.t) * (m.result === 'success' ? .18 : .75);
+    if (m.t >= 1){
+      p.x = p.tx = m.to.x;
+      p.y = p.ty = m.to.y;
+      const done = state.move;
+      state.move = null;
+      finishJump(done);
+    }
+  } else {
+    p.x += (p.tx - p.x) * Math.min(1,dt*7);
+    p.y += (p.ty - p.y) * Math.min(1,dt*7);
+    p.spin *= Math.max(0,1-dt*6);
+  }
+  p.squash = Math.max(0,p.squash - dt*3.8);
+  const wantedCamera = p.x - state.viewW * .34;
+  state.cameraX += (wantedCamera - state.cameraX) * Math.min(1,dt*3.6);
+}
+function updateEffects(dt){
+  state.particles.forEach(p=>{
+    p.x += p.vx*dt;
+    p.y += p.vy*dt;
+    p.vy += 420*dt;
+    p.life -= dt;
+  });
+  state.particles = state.particles.filter(p=>p.life>0);
+  state.rings.forEach(r=>{r.r += 200*dt; r.life -= dt});
+  state.rings = state.rings.filter(r=>r.life>0);
+}
+function spawnBurst(x,y,rgb,count=16,power=1){
+  for(let i=0;i<count;i++){
+    const a = Math.random()*Math.PI*2;
+    const s = (90+Math.random()*190)*power;
+    state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-90,life:.42+Math.random()*.55,rgb});
+  }
+}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+function render(){
+  const sw = state.screenW;
+  const sh = state.screenH;
+  const scene = state.scene;
+  ctx.clearRect(0,0,sw,sh);
+  ctx.fillStyle = '#f6f6f6';
+  ctx.fillRect(0,0,sw,sh);
+  ctx.fillStyle = '#ececec';
+  if (scene.x > 0) {
+    ctx.fillRect(0,0,scene.x,sh);
+    ctx.fillRect(scene.x+scene.w,0,sw-scene.x-scene.w,sh);
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(scene.x,scene.y,scene.w,scene.h);
+  ctx.clip();
+  ctx.translate(scene.x,scene.y);
+  const w = state.viewW;
+  const h = state.viewH;
+  drawSky(w,h);
+  ctx.save();
+  ctx.translate(-state.cameraX,0);
+  drawSetPieces();
+  drawGuide();
+  drawPlatforms();
+  drawEffects();
+  drawPlayer(state.player);
+  ctx.restore();
+  ctx.restore();
+}
+function drawSky(w,h){
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillRect(0,0,w,h);
+  const base = ctx.createLinearGradient(0,0,0,h);
+  base.addColorStop(0,'#eeeeee');
+  base.addColorStop(.42,'#f7f7f7');
+  base.addColorStop(1,'#e4e4e4');
+  ctx.fillStyle = base;
+  ctx.fillRect(0,0,w,h);
+  ctx.fillStyle = 'rgba(255,255,255,.64)';
+  for(let x=-90;x<w+130;x+=135){
+    ctx.beginPath();
+    ctx.ellipse(x + (state.cameraX*.05)%135,h-42,46,12,0,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+function drawSetPieces(){
+  for(const c of state.clouds){
+    const x = c.x;
+    const y = c.y;
+    if (x < state.cameraX-220 || x > state.cameraX+state.viewW+260) continue;
+    const shade = c.s > 56 ? '#d7d7d7' : '#e1e1e1';
+    if (c.kind === 'cylinder') drawIsoCylinder(x,y,c.s*1.35,34,'#9bdcc6',shade,.22);
+    else drawIsoBox(x,y,c.s*1.22,c.s*.7,30,'#ffffff','#eeeeee','#d9d9d9',.18);
+  }
+}
+function drawGuide(){
+  if (!state.target || state.move) return;
+  const p = state.player;
+  const t = state.target;
+  const def = CHORDS[t.chord];
+  ctx.save();
+  ctx.strokeStyle = `rgba(${def.color[0]},${def.color[1]},${def.color[2]},.58)`;
+  ctx.lineWidth = 4;
+  ctx.setLineDash([10,9]);
+  ctx.beginPath();
+  ctx.moveTo(p.x,p.y+48);
+  ctx.quadraticCurveTo((p.x+t.x)/2,p.y-105,t.x,t.y-16);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  ctx.arc(t.x,t.y-18,8,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawPlatforms(){
+  const visible = state.platforms
+    .filter(p => p.x >= state.cameraX-220 && p.x <= state.cameraX+state.viewW+260 && p.index >= state.current - 1 && p.index <= state.current + 5)
+    .sort((a,b)=>a.y-b.y);
+  for(const p of visible){
+    const active = state.target === p;
+    const current = state.platforms[state.current] === p;
+    drawOvalShadow(p.x-18,p.y+p.h+18,p.w*.6,17,.24);
+    if (active){
+      const def = CHORDS[p.chord];
+      ctx.save();
+      ctx.shadowColor = `rgb(${def.color[0]},${def.color[1]},${def.color[2]})`;
+      ctx.shadowBlur = 26;
+      ctx.strokeStyle = ctx.shadowColor;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.ellipse(p.x,p.y+12,p.w*.58,28,0,0,Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#172033';
+      ctx.font = '1000 28px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.chord,p.x,p.y-58);
+      ctx.font = '900 12px Inter, sans-serif';
+      ctx.fillStyle = '#59647e';
+      ctx.fillText(DIFFICULTY_LABELS[p.need],p.x,p.y+p.h+30);
+      ctx.textAlign = 'left';
+    }
+    const color = current ? '#8b63c7' : p.color;
+    if (p.shape === 'brick') drawBrickBlock(p.x,p.y,p.w,48,color,.98);
+    else if (p.shape === 'crate') drawCrateBlock(p.x,p.y,p.w,48,color,.98);
+    else if (p.shape === 'coinbox') drawCoinBox(p.x,p.y,p.w,48,color,.98);
+    else drawPipePlatform(p.x,p.y,p.w,p.h,color,.98);
+    if (p.chord) drawChordBadge(p,active);
+  }
+}
+function drawPlayer(p){
+  const bob = state.move ? 0 : Math.sin(performance.now()*.006)*3;
+  const chargeLevel = state.charge ? chargePercent(performance.now() - state.charge.start) : 0;
+  const pulse = state.charge ? Math.sin(performance.now()*.055) * chargeLevel : 0;
+  const squash = Math.max(p.squash, chargeLevel*.82);
+  const aura = state.charge ? CHORDS[state.charge.chord].color : [140,85,255];
+  ctx.save();
+  drawOvalShadow(p.x-14,p.y+66,44 + chargeLevel*40,14 + chargeLevel*5,.28 + chargeLevel*.16);
+  if (state.charge) drawChargeAura(p.x,p.y+42,chargeLevel,aura);
+  ctx.translate(p.x + pulse*2.2,p.y + bob + chargeLevel*18);
+  ctx.scale(p.scaleX * (1 + squash*.34),1 - squash*.42);
+  ctx.rotate(p.spin);
+  const body = ctx.createRadialGradient(-14,18,4,2,28,40);
+  body.addColorStop(0,'#564973');
+  body.addColorStop(.42,'#211f32');
+  body.addColorStop(1,'#0e0e17');
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.ellipse(0,40,29,13,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-19,40);
+  ctx.bezierCurveTo(-16,18,-12,8,-7,-2);
+  ctx.quadraticCurveTo(0,7,7,-2);
+  ctx.bezierCurveTo(12,8,16,18,19,40);
+  ctx.closePath();
+  ctx.fill();
+  const neck = ctx.createRadialGradient(-5,5,2,0,10,18);
+  neck.addColorStop(0,'#62547f');
+  neck.addColorStop(.5,'#24213a');
+  neck.addColorStop(1,'#0d0d16');
+  ctx.fillStyle = neck;
+  ctx.beginPath();
+  ctx.ellipse(0,7,14,9,0,0,Math.PI*2);
+  ctx.fill();
+  const head = ctx.createRadialGradient(-7,-16,3,0,-10,19);
+  head.addColorStop(0,'#716190');
+  head.addColorStop(.5,'#282440');
+  head.addColorStop(1,'#0c0c14');
+  ctx.fillStyle = head;
+  ctx.beginPath();
+  ctx.arc(0,-14 - chargeLevel*8,18 - chargeLevel*4,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(${aura[0]},${aura[1]},${aura[2]},${.12 + chargeLevel*.18})`;
+  ctx.beginPath();
+  ctx.ellipse(0,42,24 + chargeLevel*14,5 + chargeLevel*5,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.22)';
+  ctx.beginPath();
+  ctx.arc(-8,-20-chargeLevel*8,4,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawChargeAura(x,y,level,rgb){
+  ctx.save();
+  ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${.28 + level*.38})`;
+  ctx.lineWidth = 3 + level*4;
+  ctx.beginPath();
+  ctx.ellipse(x,y,34 + level*42,13 + level*10,0,0,Math.PI*2);
+  ctx.stroke();
+  for(let i=0;i<7;i++){
+    const a = performance.now()*.003 + i*.92;
+    const r = 25 + level*46 + (i%2)*8;
+    ctx.fillStyle = i%3===0 ? `rgba(${rgb[0]},${rgb[1]},${rgb[2]},.75)` : 'rgba(255,255,255,.82)';
+    ctx.beginPath();
+    ctx.arc(x+Math.cos(a)*r,y-12+Math.sin(a)*r*.32,2.2+level*2,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+function drawChordBadge(p,active=false){
+  const def = CHORDS[p.chord];
+  if (!def) return;
+  const rgb = def.color;
+  const isBoxy = p.shape !== 'pipe';
+  const bx = isBoxy ? p.x + p.w*.2 : p.x;
+  const by = isBoxy ? p.y + p.h*.42 : p.y + p.h*.5;
+  ctx.save();
+  if (active){
+    ctx.shadowColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},.9)`;
+    ctx.shadowBlur = 16;
+  }
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  ctx.strokeStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+  ctx.lineWidth = active ? 4 : 2;
+  ctx.beginPath();
+  ctx.ellipse(bx,by,22,16,-.08,0,Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#172033';
+  ctx.font = '1000 15px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(p.chord,bx,by+1);
+  ctx.restore();
+}
+function drawEffects(){
+  for(const r of state.rings){
+    ctx.strokeStyle = r.color;
+    ctx.globalAlpha = clamp(r.life/.45,0,1);
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(r.x,r.y,r.r,0,Math.PI*2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  for(const p of state.particles){
+    const a = clamp(p.life,.05,1);
+    ctx.fillStyle = `rgba(${p.rgb[0]},${p.rgb[1]},${p.rgb[2]},${a})`;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,4+5*a,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+function roundRect(x,y,w,h,r,fill){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  if (fill) ctx.fill(); else ctx.stroke();
+}
+function drawOvalShadow(x,y,w,h,a=.25){
+  ctx.save();
+  ctx.fillStyle = `rgba(25,30,32,${a})`;
+  ctx.beginPath();
+  ctx.ellipse(x,y,w,h,-.12,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawCleanCylinder(x,y,w,h,color,alpha=1){
+  const rx = w/2;
+  const ry = w*.18;
+  const side = shadeColor(color,-48);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const sideGrad = ctx.createLinearGradient(x-rx,y,x+rx,y);
+  sideGrad.addColorStop(0,shadeColor(color,-66));
+  sideGrad.addColorStop(.5,side);
+  sideGrad.addColorStop(1,shadeColor(color,-30));
+  ctx.fillStyle = sideGrad;
+  ctx.beginPath();
+  ctx.moveTo(x-rx,y);
+  ctx.lineTo(x-rx,y+h);
+  ctx.ellipse(x,y+h,rx,ry,0,Math.PI,0,true);
+  ctx.lineTo(x+rx,y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.17)';
+  ctx.beginPath();
+  ctx.ellipse(x-rx*.2,y-ry*.1,rx*.55,ry*.28,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawCleanBlock(x,y,w,h,color,alpha=1){
+  const topH = w*.23;
+  const hw = w/2;
+  const topY = y;
+  const left = shadeColor(color,-24);
+  const right = shadeColor(color,-48);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = left;
+  ctx.beginPath();
+  ctx.moveTo(x-hw,topY);
+  ctx.lineTo(x,topY+topH);
+  ctx.lineTo(x,topY+topH+h);
+  ctx.lineTo(x-hw,topY+h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = right;
+  ctx.beginPath();
+  ctx.moveTo(x+hw,topY);
+  ctx.lineTo(x,topY+topH);
+  ctx.lineTo(x,topY+topH+h);
+  ctx.lineTo(x+hw,topY+h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x,topY-topH);
+  ctx.lineTo(x+hw,topY);
+  ctx.lineTo(x,topY+topH);
+  ctx.lineTo(x-hw,topY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.13)';
+  ctx.beginPath();
+  ctx.moveTo(x-hw*.44,topY-topH*.42);
+  ctx.lineTo(x+hw*.02,topY-topH*.15);
+  ctx.lineTo(x-hw*.32,topY+topH*.28);
+  ctx.lineTo(x-hw*.75,topY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function drawPipePlatform(x,y,w,h,color,alpha=1){
+  drawCleanCylinder(x,y+6,w*.9,h,color,alpha);
+  const lip = shadeColor(color,18);
+  drawCleanCylinder(x,y-5,w,18,lip,alpha);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(255,255,255,.18)';
+  ctx.beginPath();
+  ctx.ellipse(x-w*.15,y-9,w*.22,w*.055,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawBrickBlock(x,y,w,h,color,alpha=1){
+  drawCleanBlock(x,y,w,h,color,alpha);
+  ctx.save();
+  ctx.globalAlpha = alpha*.58;
+  ctx.strokeStyle = shadeColor(color,-46);
+  ctx.lineWidth = 3;
+  const topH = w*.23;
+  ctx.beginPath();
+  ctx.moveTo(x-w*.38,y+h*.24);
+  ctx.lineTo(x-w*.05,y+h*.43);
+  ctx.moveTo(x+w*.38,y+h*.24);
+  ctx.lineTo(x+w*.05,y+h*.43);
+  ctx.moveTo(x-w*.43,y+h*.62);
+  ctx.lineTo(x,y+h*.86);
+  ctx.lineTo(x+w*.43,y+h*.62);
+  ctx.moveTo(x-w*.16,y-topH*.24);
+  ctx.lineTo(x+w*.18,y-topH*.04);
+  ctx.stroke();
+  ctx.restore();
+}
+function drawCrateBlock(x,y,w,h,color,alpha=1){
+  drawCleanBlock(x,y,w,h,color,alpha);
+  ctx.save();
+  ctx.globalAlpha = alpha*.7;
+  ctx.strokeStyle = shadeColor(color,-58);
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x-w*.34,y+h*.12);
+  ctx.lineTo(x+w*.02,y+h*.34);
+  ctx.moveTo(x+w*.34,y+h*.12);
+  ctx.lineTo(x-w*.02,y+h*.34);
+  ctx.stroke();
+  ctx.restore();
+}
+function drawCoinBox(x,y,w,h,color,alpha=1){
+  drawCleanBlock(x,y,w,h,color,alpha);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(255,255,255,.88)';
+  ctx.beginPath();
+  ctx.ellipse(x+w*.18,y+h*.42,16,13,-.08,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#c97914';
+  ctx.font = '1000 22px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('?',x+w*.18,y+h*.42+1);
+  ctx.restore();
+}
+function drawIsoCylinder(x,y,w,h,topColor,sideColor,alpha=1){
+  const rx = w/2;
+  const ry = Math.max(18,w*.18);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = sideColor;
+  ctx.beginPath();
+  ctx.moveTo(x-rx,y);
+  ctx.lineTo(x-rx,y+h);
+  ctx.ellipse(x,y+h,rx,ry,0,Math.PI,0,true);
+  ctx.lineTo(x+rx,y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = shadeColor(sideColor,-22);
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x+rx,y);
+  ctx.lineTo(x+rx,y+h);
+  ctx.ellipse(x,y+h,rx,ry,0,0,Math.PI/2,false);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = topColor;
+  ctx.beginPath();
+  ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.16)';
+  ctx.beginPath();
+  ctx.ellipse(x-rx*.22,y-ry*.12,rx*.55,ry*.28,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawIsoBox(x,y,w,d,h,topColor,leftColor,rightColor,alpha=1){
+  const hw = w/2;
+  const hd = d/2;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = leftColor;
+  ctx.beginPath();
+  ctx.moveTo(x-hw,y);
+  ctx.lineTo(x,y+hd);
+  ctx.lineTo(x,y+hd+h);
+  ctx.lineTo(x-hw,y+h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = rightColor;
+  ctx.beginPath();
+  ctx.moveTo(x+hw,y);
+  ctx.lineTo(x,y+hd);
+  ctx.lineTo(x,y+hd+h);
+  ctx.lineTo(x+hw,y+h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = topColor;
+  ctx.beginPath();
+  ctx.moveTo(x,y-hd);
+  ctx.lineTo(x+hw,y);
+  ctx.lineTo(x,y+hd);
+  ctx.lineTo(x-hw,y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.14)';
+  ctx.beginPath();
+  ctx.moveTo(x-hw*.5,y-hd*.5);
+  ctx.lineTo(x+hw*.1,y-hd*.05);
+  ctx.lineTo(x-hw*.3,y+hd*.34);
+  ctx.lineTo(x-hw*.85,y-.02);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function drawTablePlatform(x,y,w,h,color){
+  drawIsoBox(x,y,w,w*.54,18,'#ffb36b','#c45f2f','#a94a24',1);
+  ctx.fillStyle = '#b6542a';
+  const legY = y+17;
+  [[-w*.34,0],[-w*.08,w*.2],[w*.3,0],[w*.06,w*.2]].forEach(([dx,dy])=>{
+    ctx.fillRect(x+dx-5,legY+dy,10,h*.72);
+    ctx.fillStyle = '#8f3d20';
+    ctx.fillRect(x+dx+2,legY+dy,5,h*.72);
+    ctx.fillStyle = '#b6542a';
+  });
+}
+function shadeColor(hex,amt){
+  let c = hex.replace('#','');
+  if (c.length === 3) c = c.split('').map(v=>v+v).join('');
+  const n = parseInt(c,16);
+  const r = clamp((n >> 16) + amt,0,255);
+  const g = clamp(((n >> 8) & 255) + amt,0,255);
+  const b = clamp((n & 255) + amt,0,255);
+  return '#' + [r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+}
+
+document.getElementById('startBtn').addEventListener('click',()=>{initAudio();resetGame()});
+document.getElementById('restartBtn').addEventListener('click',()=>{initAudio();resetGame()});
+document.getElementById('connectBtn').addEventListener('click',connectMIDI);
+document.getElementById('retryMidiBtn').addEventListener('click',connectMIDI);
+window.addEventListener('keydown',e=>{
+  if (e.repeat) return;
+  if (e.code === 'Space' && !state.running){
+    initAudio();
+    resetGame();
+    return;
+  }
+  const chord = COMPUTER_CHORDS[e.code];
+  if (!chord) return;
+  e.preventDefault();
+  initAudio();
+  const def = CHORDS[chord];
+  def.keys.forEach(k=>heldNotes.set(48+k,78));
+  renderKeyboard();
+  handleChordAttempt(chord);
+});
+window.addEventListener('keyup',e=>{
+  const chord = COMPUTER_CHORDS[e.code];
+  if (!chord) return;
+  if (state.charge && state.charge.chord === chord) finishCharge();
+  CHORDS[chord].keys.forEach(k=>heldNotes.delete(48+k));
+  renderKeyboard();
+});
+
+buildKeyboard();
+resize();
+updateHUD();
+setMIDIStatus(false);
+ledHighlightChord(targetChordEl.textContent);
+connectMIDI();
+render();
+</script>
+</body>
+</html>

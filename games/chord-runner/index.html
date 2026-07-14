@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chord Runner Reels Demo</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#10131f;color:#fff;font-family:Inter,Arial,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+    body{display:flex;align-items:stretch;justify-content:stretch}
+    .app{width:100vw;height:100vh;background:#151a28;position:relative;overflow:hidden}
+    .topbar{position:absolute;left:0;right:0;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:18px 28px;background:linear-gradient(180deg,rgba(4,7,16,.86),rgba(4,7,16,.18));pointer-events:none}
+    .brand{font-size:20px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .midi{display:flex;align-items:center;gap:9px;font-size:13px;color:#c9d5ef;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .dot{width:10px;height:10px;border-radius:99px;background:#536078;box-shadow:0 0 0 2px rgba(255,255,255,.1)}
+    .dot.on{background:#1effa9;box-shadow:0 0 18px #1effa9}
+    .dot.err{background:#ff4778;box-shadow:0 0 18px #ff4778}
+    .hud{position:absolute;left:28px;top:68px;z-index:4;display:grid;grid-template-columns:repeat(3,118px);gap:10px;pointer-events:none}
+    .hudBox{border:1px solid rgba(255,255,255,.16);background:rgba(12,16,30,.52);backdrop-filter:blur(10px);border-radius:8px;padding:10px 12px}
+    .hudLabel{font-size:10px;color:#8fa1c4;text-transform:uppercase;letter-spacing:.09em}
+    .hudVal{margin-top:4px;font-weight:900;font-size:24px;color:#fff}
+    canvas{width:100%;height:100%;display:block;background:#7fd8ff}
+    .prompt{position:absolute;right:28px;top:74px;z-index:4;width:min(520px,42vw);display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;pointer-events:none}
+    .chordCard{height:132px;border-radius:8px;background:rgba(6,10,22,.72);border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;box-shadow:0 16px 42px rgba(0,0,0,.32)}
+    .chordName{font-size:58px;font-weight:1000;line-height:1;color:#fff;text-shadow:0 0 26px currentColor}
+    .actionCard{min-height:132px;border-radius:8px;background:rgba(6,10,22,.62);border:1px solid rgba(255,255,255,.18);padding:18px;display:flex;flex-direction:column;justify-content:center}
+    .actionTitle{font-size:30px;font-weight:1000;line-height:1.05}
+    .actionSub{margin-top:10px;font-size:16px;color:#c9d5ef;line-height:1.35}
+    .bottom{position:absolute;left:0;right:0;bottom:0;z-index:6;padding:14px 28px 18px;background:linear-gradient(0deg,rgba(7,10,21,.98),rgba(7,10,21,.84),rgba(7,10,21,0));}
+    .ledInfo{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-bottom:9px;font-size:14px;color:#d6e1f8}
+    .ledPill{border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:7px 12px;background:rgba(255,255,255,.08);white-space:nowrap}
+    .piano{height:102px;display:flex;align-items:flex-end;gap:4px;touch-action:manipulation}
+    .key{position:relative;flex:1;height:82px;border:1px solid rgba(0,0,0,.25);border-radius:0 0 6px 6px;background:#f5f8ff;color:#141927;box-shadow:inset 0 -7px 0 rgba(0,0,0,.12);font-weight:1000;font-size:12px;padding:0;cursor:pointer;transition:transform .08s,filter .08s,box-shadow .08s,outline .08s}
+    .key.black{height:54px;background:#151a25;color:#fff;align-self:flex-start;margin-left:-18px;margin-right:-18px;z-index:2;border-radius:0 0 5px 5px;box-shadow:inset 0 -5px 0 rgba(255,255,255,.08)}
+    .key.lit{filter:saturate(1.35) brightness(1.08);outline:4px solid rgba(255,255,255,.9);outline-offset:2px;box-shadow:0 0 34px var(--glow),0 0 70px var(--glow),inset 0 -6px 0 rgba(0,0,0,.18);z-index:4}
+    .key.down{transform:translateY(4px)}
+    .key span{position:absolute;left:0;right:0;bottom:6px;text-align:center;pointer-events:none}
+    .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+    .chordBtn{height:46px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:#222b3f;color:#fff;font-weight:1000;font-size:15px;cursor:pointer}
+    .chordBtn.active{background:var(--btnBg);color:#101421;box-shadow:0 0 24px var(--btnGlow),inset 0 0 0 2px rgba(255,255,255,.78);border-color:rgba(255,255,255,.65)}
+    .overlay{position:absolute;inset:0;z-index:10;background:radial-gradient(circle at 50% 18%,rgba(255,215,92,.2),transparent 24%),rgba(7,10,20,.88);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:30px}
+    .overlay h1{margin:0;font-size:70px;line-height:.95;font-weight:1000;letter-spacing:.02em;text-transform:uppercase}
+    .overlay p{margin:20px 0 0;color:#cbd6ee;font-size:18px;line-height:1.65;max-width:720px}
+    .startBtns{display:grid;gap:10px;margin-top:24px;width:100%;max-width:300px}
+    .mainBtn{height:48px;border:0;border-radius:8px;background:#ffcc33;color:#141019;font-weight:1000;font-size:15px;cursor:pointer;box-shadow:0 8px 0 #996b00}
+    .ghostBtn{height:42px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-weight:900;cursor:pointer}
+    .toast{position:absolute;left:50%;top:45%;z-index:7;transform:translate(-50%,-50%);font-size:78px;font-weight:1000;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.45);opacity:0;pointer-events:none}
+    .toast.show{animation:pop .55s ease-out}
+    @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.65)}22%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}100%{opacity:0;transform:translate(-50%,-72%) scale(1)}}
+    @media (max-width:760px){
+      .topbar{padding:12px 14px}
+      .brand{font-size:15px}
+      .midi{max-width:170px;font-size:11px}
+      .hud{left:12px;top:52px;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:calc(100vw - 24px)}
+      .hudBox{padding:8px}
+      .hudVal{font-size:19px}
+      .prompt{left:12px;right:12px;top:142px;width:auto;grid-template-columns:88px minmax(0,1fr);gap:9px}
+      .chordCard{height:82px}
+      .chordName{font-size:38px}
+      .actionCard{min-height:82px;padding:10px}
+      .actionTitle{font-size:21px}
+      .actionSub{font-size:12px}
+      .bottom{padding:12px 10px 14px}
+      .ledInfo{grid-template-columns:1fr;gap:6px;font-size:12px}
+      .ledPill{justify-self:start}
+      .piano{height:78px;gap:2px}
+      .key{height:62px;font-size:10px}
+      .key.black{height:42px;margin-left:-10px;margin-right:-10px}
+      .controls{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+      .chordBtn{height:40px;font-size:13px}
+      .overlay{padding:22px}
+      .overlay h1{font-size:42px}
+      .overlay p{font-size:15px}
+      .toast{font-size:48px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <canvas id="game" width="1280" height="720"></canvas>
+
+    <div class="topbar">
+      <div class="brand">Chord Runner</div>
+      <div class="midi"><span class="dot" id="midiDot"></span><span id="midiText">MIDI disconnected</span></div>
+    </div>
+
+    <section class="hud">
+      <div class="hudBox"><div class="hudLabel">Score</div><div class="hudVal" id="score">0</div></div>
+      <div class="hudBox"><div class="hudLabel">Lives</div><div class="hudVal" id="lives">3</div></div>
+      <div class="hudBox"><div class="hudLabel">Combo</div><div class="hudVal" id="combo">x1</div></div>
+    </section>
+
+    <section class="prompt">
+      <div class="chordCard"><div class="chordName" id="chordName">--</div></div>
+      <div class="actionCard">
+        <div class="actionTitle" id="actionTitle">Ready to run</div>
+        <div class="actionSub" id="actionSub">The target chord lights up on PartyKeys and the piano below</div>
+      </div>
+    </section>
+
+    <div class="toast" id="toast">GOOD</div>
+
+    <section class="bottom">
+      <div class="ledInfo">
+        <div id="ledText">PartyKeys LEDs waiting for the target chord</div>
+        <div class="ledPill" id="latencyText">Sysex LED</div>
+      </div>
+      <div class="piano" id="piano"></div>
+      <div class="controls" id="controls"></div>
+    </section>
+
+    <section class="overlay" id="overlay">
+      <h1>Play Runner<br>with Chords</h1>
+      <p>A 2D chord runner demo. Connect MIDI / PartyKeys, then C, G, Am, and F light up the keys. Play the right chord to jump, dodge, attack, or collect.</p>
+      <div class="startBtns">
+        <button class="mainBtn" id="startMidi">Connect MIDI & Start</button>
+        <button class="ghostBtn" id="startDemo">Demo Mode</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const PLAYER_X = 210;
+    const SPAWN_X = W + 120;
+    const PROMPT_X = W - 310;
+    const MISS_X = PLAYER_X - 42;
+    const LANES = [236, 348, 460];
+    const KEY_BASE = 48;
+    const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const KEY_IS_BLACK = [false,true,false,true,false,false,true,false,true,false,true,false];
+    const DEFAULT_COLORS = [
+      '#FF9D02','#FB8A02','#F87D01','#F57200','#F36500','#EF5500',
+      '#F14A00','#F33F00','#F53400','#F82800','#FA1E00','#FC1200',
+      '#FC0B17','#FC0A32','#FC094B','#FB0768','#FB0582','#F902A7',
+      '#EA02B3','#D502B7','#BC01BD','#A301C2','#8B01C8','#7400CC',
+      '#5901CB','#4B03BC','#3F04AF','#3206A0','#230790','#150981',
+      '#161C80','#1E3387','#264C8F','#306797','#38809E','#47ABAB'
+    ];
+    const CHORDS = {
+      C:  { pc:[0,4,7],  keys:[12,16,19], rgb:[255,236,96], action:'Jump', sub:'Clear the brick barrier', kind:'barrier', hotkey:'1' },
+      G:  { pc:[7,11,2], keys:[19,23,26], rgb:[0,229,255], action:'Dodge', sub:'A wall blocks the lane. Move to safety', kind:'switch', hotkey:'2' },
+      Am: { pc:[9,0,4],  keys:[21,24,28], rgb:[255,82,166], action:'Attack', sub:'Knock out the spiky blocker', kind:'enemy', hotkey:'3' },
+      F:  { pc:[5,9,0],  keys:[17,21,24], rgb:[50,255,143], action:'Collect', sub:'Grab the glowing coin', kind:'coin', hotkey:'4' }
+    };
+    const CHORD_ORDER = ['C','G','Am','F'];
+
+    let midiIn = null;
+    let midiOut = null;
+    let demoMode = false;
+    let heldNotes = new Set();
+    let ledState = Array.from({length:36}, () => [0,0,0]);
+    let lastT = 0;
+    let loopTimer = null;
+    let audioCtx = null;
+
+    const state = {
+      running:false, over:false, lane:1, targetLane:1, runnerY:0, jump:0, attack:0, collect:0,
+      score:0, combo:0, lives:3, speed:240, spawn:700, seq:0, shake:0, flash:0,
+      objects:[], particles:[], current:null, bg:0
+    };
+
+    function hexToRgb(hex){
+      return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
+    }
+    function encCh(v){ return [Math.floor(v/128), v % 128]; }
+    function buildCmd15(groups){
+      const hdr = [0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x15,groups.length];
+      const body = [];
+      groups.forEach(g => body.push(...encCh(g.r),...encCh(g.g),...encCh(g.b),g.keys.length,...g.keys));
+      return new Uint8Array([...hdr,...body,0xF7]);
+    }
+    function sendLedMode(){
+      if (midiOut) midiOut.send([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x0F,0x01,0xF7]);
+    }
+    function ledOff(){
+      if (midiOut) midiOut.send([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x71,0x00,0xF7]);
+      ledState = ledState.map(() => [0,0,0]);
+      updatePiano();
+    }
+    function ledDefault(){
+      const groups = DEFAULT_COLORS.map((hex,i) => {
+        const [r,g,b] = hexToRgb(hex);
+        return {r,g,b,keys:[i]};
+      });
+      if (midiOut) midiOut.send(buildCmd15(groups));
+      ledState = DEFAULT_COLORS.map(hexToRgb);
+      updatePiano();
+    }
+    function highlightChord(name){
+      const chord = CHORDS[name];
+      if (!chord) return;
+      const [r,g,b] = chord.rgb;
+      if (midiOut) {
+        midiOut.send([0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00,0x71,0x00,0xF7]);
+        midiOut.send(buildCmd15([{r,g,b,keys:chord.keys}]));
+      }
+      ledState = ledState.map((_,i) => chord.keys.includes(i) ? [r,g,b] : [0,0,0]);
+      updatePiano();
+      document.getElementById('ledText').textContent = `${name} LED: keys [${chord.keys.join(', ')}] / RGB(${r}, ${g}, ${b})`;
+    }
+    function ledFlash(r,g,b){
+      if (midiOut) midiOut.send(buildCmd15([{r,g,b,keys:[...Array(36).keys()]}]));
+      ledState = ledState.map(() => [r,g,b]);
+      updatePiano();
+      window.setTimeout(() => state.current ? highlightChord(state.current.chord) : ledOff(), 220);
+    }
+
+    async function connectMIDI(){
+      if (!navigator.requestMIDIAccess) {
+        setMidiStatus('Web MIDI not supported','err');
+        return false;
+      }
+      try {
+        const access = await navigator.requestMIDIAccess({ sysex:true });
+        setupPorts(access);
+        access.onstatechange = () => setupPorts(access);
+        return Boolean(midiIn || midiOut);
+      } catch (err) {
+        setMidiStatus('MIDI permission denied','err');
+        return false;
+      }
+    }
+    function setupPorts(access){
+      midiIn = null;
+      midiOut = null;
+      for (const p of access.inputs.values()) {
+        if ((p.name || '').toLowerCase().includes('partykeys') || !midiIn) midiIn = p;
+      }
+      for (const p of access.outputs.values()) {
+        if ((p.name || '').toLowerCase().includes('partykeys') || !midiOut) midiOut = p;
+      }
+      if (midiIn) midiIn.onmidimessage = onMidiMessage;
+      if (midiOut) {
+        sendLedMode();
+        ledOff();
+      }
+      setMidiStatus(midiIn || midiOut ? (midiOut?.name || midiIn?.name || 'MIDI connected') : 'MIDI disconnected', midiIn || midiOut ? 'on' : '');
+    }
+    function setMidiStatus(text, cls){
+      document.getElementById('midiText').textContent = text.slice(0,20);
+      document.getElementById('midiDot').className = `dot ${cls || ''}`.trim();
+    }
+    function onMidiMessage(e){
+      const [st,note,vel] = e.data;
+      const type = st & 0xF0;
+      if (type === 0x90 && vel > 0) {
+        heldNotes.add(note);
+        playClick(note);
+        checkChord();
+      } else if (type === 0x80 || (type === 0x90 && vel === 0)) {
+        heldNotes.delete(note);
+      }
+    }
+    function checkChord(){
+      const pcs = new Set([...heldNotes].map(n => n % 12));
+      for (const name of CHORD_ORDER) {
+        if (CHORDS[name].pc.every(pc => pcs.has(pc))) {
+          playChord(name);
+          return;
+        }
+      }
+    }
+
+    function trackY(lane){
+      const low = Math.floor(lane);
+      const high = Math.ceil(lane);
+      const t = lane - low;
+      return LANES[low] + (LANES[high] - LANES[low]) * t;
+    }
+    function reset(){
+      state.running = true;
+      state.over = false;
+      state.lane = 1;
+      state.targetLane = 1;
+      state.runnerY = 0;
+      state.jump = 0;
+      state.attack = 0;
+      state.collect = 0;
+      state.score = 0;
+      state.combo = 0;
+      state.lives = 3;
+      state.speed = 240;
+      state.spawn = 820;
+      state.seq = 0;
+      state.shake = 0;
+      state.flash = 0;
+      state.objects = [];
+      state.particles = [];
+      state.current = null;
+      updateHud();
+      setPrompt(null);
+      ledOff();
+      document.getElementById('overlay').style.display = 'none';
+      lastT = Date.now();
+      if (loopTimer) clearInterval(loopTimer);
+      loopTimer = setInterval(loop, 16);
+    }
+    function spawnObject(){
+      const chord = CHORD_ORDER[state.seq % CHORD_ORDER.length];
+      const def = CHORDS[chord];
+      let lane = Math.round(state.targetLane);
+      let safeLane = lane;
+      if (def.kind === 'switch') {
+        const choices = [lane - 1, lane + 1].filter(n => n >= 0 && n <= 2);
+        safeLane = choices[(state.seq + Math.floor(Math.random() * choices.length)) % choices.length];
+      }
+      state.objects.push({ chord, kind:def.kind, lane, safeLane, x:SPAWN_X, done:false, missed:false, prompted:false, id:Date.now()+Math.random() });
+      state.seq++;
+      state.speed = Math.min(340, state.speed + 3.2);
+    }
+    function setPrompt(obj){
+      const chordName = document.getElementById('chordName');
+      const actionTitle = document.getElementById('actionTitle');
+      const actionSub = document.getElementById('actionSub');
+      if (!obj) {
+        chordName.textContent = '--';
+        chordName.style.color = '#fff';
+        actionTitle.textContent = 'Watch the next obstacle';
+        actionSub.textContent = demoMode ? 'Use 1/2/3/4 to trigger C/G/Am/F in demo mode' : 'Play the glowing chord to make the move';
+        document.getElementById('ledText').textContent = 'PartyKeys LEDs waiting for the target chord';
+        markActiveButtons(null);
+        return;
+      }
+      const chord = CHORDS[obj.chord];
+      chordName.textContent = obj.chord;
+      chordName.style.color = `rgb(${chord.rgb.join(',')})`;
+      actionTitle.textContent = `${obj.chord} = ${chord.action}`;
+      const route = obj.kind === 'switch' ? ` · Move ${obj.safeLane < obj.lane ? 'up' : 'down'} to the safe lane` : '';
+      actionSub.textContent = `${chord.sub}${route} · Press lit keys: ${chord.keys.map(i => NOTE_NAMES[i % 12]).join(' + ')}`;
+      highlightChord(obj.chord);
+      markActiveButtons(obj.chord);
+    }
+    function playChord(name){
+      if (!state.running || state.over) return;
+      const obj = state.current;
+      if (!obj || obj.done || obj.missed) {
+        showToast(name, '#d9e2ff');
+        return;
+      }
+      if (name !== obj.chord) {
+        crash(`Need ${obj.chord}`);
+        ledFlash(255,30,74);
+        return;
+      }
+      obj.done = true;
+      state.current = null;
+      state.combo++;
+      state.score += 120 * Math.max(1,state.combo);
+      doAction(obj);
+      burst(obj.x, trackY(obj.lane) - 40, CHORDS[name].rgb, 18);
+      showToast(CHORDS[name].action, `rgb(${CHORDS[name].rgb.join(',')})`);
+      ledFlash(42,255,156);
+      playSuccess(name);
+      updateHud();
+      setPrompt(null);
+    }
+    function doAction(obj){
+      if (obj.kind === 'barrier') state.jump = .72;
+      if (obj.kind === 'switch') state.targetLane = obj.safeLane;
+      if (obj.kind === 'enemy') state.attack = .42;
+      if (obj.kind === 'coin') state.collect = .55;
+    }
+    function crash(msg){
+      state.combo = 0;
+      state.lives--;
+      state.shake = .34;
+      state.flash = .18;
+      showToast(msg || 'Crash', '#ff4778');
+      playBad();
+      updateHud();
+      if (state.lives <= 0) endGame();
+    }
+    function endGame(){
+      state.running = false;
+      state.over = true;
+      ledFlash(255,20,80);
+      const overlay = document.getElementById('overlay');
+      overlay.style.display = 'flex';
+      overlay.querySelector('h1').innerHTML = 'Game<br>Over';
+      overlay.querySelector('p').textContent = `Score: ${state.score.toLocaleString()}. Try another run and make the shot cleaner.`;
+      document.getElementById('startMidi').textContent = 'Reconnect MIDI & Start';
+      document.getElementById('startDemo').textContent = 'Run Demo Again';
+    }
+    function loop(){
+      const now = Date.now();
+      const dt = Math.min(.04, (now - lastT) / 1000 || .016);
+      lastT = now;
+      if (state.running) update(dt);
+      draw();
+    }
+    function update(dt){
+      state.bg += state.speed * dt;
+      state.spawn -= dt * 1000;
+      if (state.spawn <= 0 && state.objects.length === 0 && !state.current) {
+        spawnObject();
+        state.spawn = Math.max(1080, 1920 - state.seq * 18);
+      }
+      state.lane += (state.targetLane - state.lane) * Math.min(1, dt * 8);
+      state.runnerY = state.jump > 0 ? -Math.sin((state.jump / .72) * Math.PI) * 78 : 0;
+      state.jump = Math.max(0, state.jump - dt);
+      state.attack = Math.max(0, state.attack - dt);
+      state.collect = Math.max(0, state.collect - dt);
+      state.shake = Math.max(0, state.shake - dt);
+      state.flash = Math.max(0, state.flash - dt);
+      for (const obj of state.objects) {
+        if (!obj.done && !obj.missed) obj.x -= state.speed * dt;
+        if (!obj.prompted && obj.x < PROMPT_X) {
+          obj.prompted = true;
+          state.current = obj;
+          setPrompt(obj);
+          playPrompt();
+        }
+        if (obj === state.current && !obj.done && !obj.missed && obj.x < MISS_X) {
+          obj.missed = true;
+          if (state.current === obj) {
+            state.current = null;
+            setPrompt(null);
+          }
+          crash(`${obj.chord} missed`);
+        }
+      }
+      state.objects = state.objects.filter(o => !o.done && o.x > -140 && !(o.missed && o.x < PLAYER_X - 110));
+      state.particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 280 * dt; p.life -= dt; });
+      state.particles = state.particles.filter(p => p.life > 0);
+    }
+    function draw(){
+      ctx.save();
+      if (state.shake > 0) ctx.translate((Math.random()-.5)*10, (Math.random()-.5)*8);
+      drawScene();
+      drawObjects();
+      drawRunner();
+      drawParticles();
+      if (state.flash > 0) {
+        ctx.fillStyle = `rgba(255,30,84,${state.flash * 1.8})`;
+        ctx.fillRect(0,0,W,H);
+      }
+      ctx.restore();
+    }
+    function drawScene(){
+      const sky = ctx.createLinearGradient(0,0,0,H);
+      sky.addColorStop(0,'#64cfff');
+      sky.addColorStop(.58,'#b8f1ff');
+      sky.addColorStop(.59,'#6fc65f');
+      sky.addColorStop(1,'#378044');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0,0,W,H);
+
+      ctx.fillStyle = '#fff4a7';
+      ctx.beginPath(); ctx.arc(W - 112,82,38,0,Math.PI*2); ctx.fill();
+      for (let i=0;i<8;i++) drawCloud((120+i*195-state.bg*.16)%(W+260)-120, 70 + (i%3)*34, 23 + (i%2)*5);
+
+      drawHill((120-state.bg*.28)%(W+260)-160, 365, 190, 86, '#5caf55', '#74d16b');
+      drawHill((520-state.bg*.22)%(W+320)-160, 380, 230, 105, '#4aa24a', '#65c464');
+      drawBushes();
+      drawPipes();
+
+      ctx.fillStyle = 'rgba(9,29,42,.10)';
+      ctx.fillRect(0,LANES[0]-38,W,LANES[2]-LANES[0]+86);
+      for (let i=0;i<LANES.length;i++) drawPlatformLane(i);
+
+      ctx.fillStyle = 'rgba(255,238,110,.22)';
+      ctx.fillRect(PLAYER_X - 12, LANES[0]-56, 24, LANES[2]-LANES[0]+86);
+      ctx.strokeStyle = '#ffe66f';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(PLAYER_X, LANES[0]-56);
+      ctx.lineTo(PLAYER_X, LANES[2]+30);
+      ctx.stroke();
+    }
+    function drawCloud(x,y,r){
+      ctx.fillStyle = 'rgba(255,255,255,.86)';
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+r*.8,y+5,r*.72,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x-r*.75,y+6,r*.64,0,Math.PI*2); ctx.fill();
+    }
+    function drawHill(x,base,w,h,body,spots){
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(x,base);
+      ctx.quadraticCurveTo(x+w/2,base-h,x+w,base);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = spots;
+      ctx.beginPath(); ctx.arc(x+w*.38,base-h*.42,13,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+w*.65,base-h*.26,10,0,Math.PI*2); ctx.fill();
+    }
+    function drawBushes(){
+      ctx.fillStyle = '#2f9a45';
+      for (let i=0;i<9;i++) {
+        const x = (i*185 - state.bg*.55) % (W+220) - 90;
+        const y = 520 + (i%2)*10;
+        ctx.beginPath(); ctx.arc(x,y,28,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+30,y+3,22,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x-28,y+6,18,0,Math.PI*2); ctx.fill();
+      }
+    }
+    function drawPipes(){
+      for (let i=0;i<4;i++) {
+        const x = (430 + i*360 - state.bg*.72) % (W+220) - 110;
+        const y = LANES[2] + 6;
+        ctx.fillStyle = '#16994a';
+        ctx.fillRect(x,y-64,54,64);
+        ctx.fillStyle = '#22c45e';
+        ctx.fillRect(x-8,y-80,70,22);
+        ctx.fillStyle = 'rgba(255,255,255,.22)';
+        ctx.fillRect(x+8,y-58,8,52);
+      }
+    }
+    function drawPlatformLane(index){
+      const y = LANES[index];
+      ctx.fillStyle = index === Math.round(state.lane) ? 'rgba(255,238,112,.18)' : 'rgba(255,255,255,.06)';
+      ctx.fillRect(0,y-58,W,74);
+      for (let x = -64 + ((-state.bg * (1 + index*.05)) % 64); x < W+64; x += 64) {
+        ctx.fillStyle = '#d9853a';
+        ctx.fillRect(x,y,64,34);
+        ctx.strokeStyle = '#9e5625';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x,y,64,34);
+        ctx.strokeStyle = 'rgba(255,225,134,.35)';
+        ctx.beginPath(); ctx.moveTo(x,y+12); ctx.lineTo(x+64,y+12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x+32,y+12); ctx.lineTo(x+32,y+34); ctx.stroke();
+      }
+      ctx.fillStyle = '#6b3d1d';
+      ctx.fillRect(0,y+34,W,18);
+    }
+    function drawObjects(){
+      const sorted = [...state.objects].sort((a,b) => trackY(a.lane) - trackY(b.lane));
+      sorted.forEach(obj => {
+        const x = obj.x;
+        const y = trackY(obj.lane);
+        const s = 1;
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.scale(s,s);
+        if (obj.kind === 'barrier') drawBarrier(obj.chord);
+        if (obj.kind === 'switch') drawSwitch(obj);
+        if (obj.kind === 'enemy') drawEnemy(obj.chord);
+        if (obj.kind === 'coin') drawCoins(obj.chord);
+        ctx.restore();
+      });
+    }
+    function labelChord(chord){
+      ctx.fillStyle = '#121621';
+      ctx.font = '900 21px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(chord,0,-7);
+    }
+    function drawBarrier(chord){
+      ctx.fillStyle = 'rgba(0,0,0,.22)';
+      ctx.beginPath(); ctx.ellipse(0,4,46,10,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#db7132';
+      ctx.fillRect(-48,-50,96,50);
+      ctx.fillStyle = '#f59a45';
+      ctx.fillRect(-42,-92,84,42);
+      ctx.fillStyle = '#8f3d1f';
+      ctx.fillRect(-48,-50,96,8);
+      ctx.strokeStyle = 'rgba(255,226,144,.5)';
+      ctx.lineWidth = 3;
+      for (let y=-84;y<-8;y+=20) {
+        ctx.beginPath(); ctx.moveTo(-42,y); ctx.lineTo(42,y); ctx.stroke();
+      }
+      for (let x=-20;x<=20;x+=40) {
+        ctx.beginPath(); ctx.moveTo(x,-92); ctx.lineTo(x,0); ctx.stroke();
+      }
+      ctx.fillStyle = '#fff7a8';
+      ctx.font = '900 26px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(chord,0,-58);
+    }
+    function drawSwitch(obj){
+      const dir = obj.safeLane < obj.lane ? -1 : 1;
+      ctx.fillStyle = 'rgba(0,0,0,.22)';
+      ctx.beginPath(); ctx.ellipse(0,4,58,11,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#254d66';
+      ctx.fillRect(-54,-96,108,96);
+      ctx.fillStyle = '#2f7b9b';
+      ctx.fillRect(-44,-86,88,78);
+      ctx.fillStyle = '#172837';
+      ctx.fillRect(-54,-8,108,8);
+      ctx.strokeStyle = '#85eaff';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-22,-48);
+      ctx.lineTo(22,-48);
+      ctx.lineTo(22,-48 + dir * 32);
+      ctx.stroke();
+      ctx.fillStyle = '#85eaff';
+      ctx.beginPath();
+      ctx.moveTo(22,-48 + dir * 44);
+      ctx.lineTo(4,-48 + dir * 24);
+      ctx.lineTo(40,-48 + dir * 24);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 27px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(obj.chord,0,-58);
+    }
+    function drawEnemy(chord){
+      ctx.fillStyle = 'rgba(0,0,0,.24)';
+      ctx.beginPath(); ctx.ellipse(0,4,48,11,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ff3f5f';
+      ctx.beginPath();
+      ctx.moveTo(-46,-58);
+      ctx.lineTo(-30,-78);
+      ctx.lineTo(-14,-60);
+      ctx.lineTo(0,-86);
+      ctx.lineTo(15,-60);
+      ctx.lineTo(31,-78);
+      ctx.lineTo(46,-58);
+      ctx.lineTo(40,-8);
+      ctx.quadraticCurveTo(0,12,-40,-8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#b61231';
+      ctx.fillRect(-38,-24,76,20);
+      ctx.fillStyle = '#fff3c7';
+      ctx.beginPath(); ctx.arc(-17,-43,12,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(17,-43,12,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#101827';
+      ctx.fillRect(-20,-45,7,9);
+      ctx.fillRect(14,-45,7,9);
+      ctx.fillStyle = '#fff3c7';
+      for (let x=-26;x<=26;x+=13) {
+        ctx.beginPath();
+        ctx.moveTo(x,-19);
+        ctx.lineTo(x+7,-5);
+        ctx.lineTo(x+14,-19);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = '#fff';
+      ctx.font = '900 23px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(chord,0,-64);
+    }
+    function drawCoins(chord){
+      ctx.fillStyle = 'rgba(0,0,0,.16)';
+      ctx.beginPath(); ctx.ellipse(0,4,48,9,0,0,Math.PI*2); ctx.fill();
+      const coin = ctx.createRadialGradient(-12,-66,6,0,-54,42);
+      coin.addColorStop(0,'#fff8a8');
+      coin.addColorStop(.42,'#ffd84a');
+      coin.addColorStop(1,'#d99516');
+      ctx.fillStyle = coin;
+      ctx.beginPath(); ctx.arc(0,-54,38,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#8f5b0f';
+      ctx.lineWidth = 6;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.58)';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(-7,-62,18,Math.PI*.78,Math.PI*1.35); ctx.stroke();
+      ctx.fillStyle = '#7b4b0b';
+      ctx.font = '1000 30px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(chord,0,-53);
+    }
+    function drawRunner(){
+      const y = trackY(state.lane) + state.runnerY;
+      const x = PLAYER_X;
+      const run = state.running ? Math.sin(state.bg * .075) : 0;
+      ctx.save();
+      ctx.translate(x,y);
+      if (state.attack > 0) ctx.rotate(Math.sin(state.attack * 36) * .16);
+
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.beginPath(); ctx.ellipse(4,10,45,12,0,0,Math.PI*2); ctx.fill();
+
+      // Legs and shoes behind the body.
+      ctx.fillStyle = '#184aa9';
+      ctx.beginPath(); ctx.roundRect(-18,-18-run*5,18,32,5); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(6,-18+run*5,18,32,5); ctx.fill();
+      ctx.fillStyle = '#5b351e';
+      ctx.beginPath(); ctx.roundRect(-29,8-run*5,30,13,5); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(5,8+run*5,31,13,5); ctx.fill();
+
+      // Overalls and shirt.
+      ctx.fillStyle = '#e73828';
+      ctx.beginPath(); ctx.roundRect(-28,-68,56,42,12); ctx.fill();
+      ctx.fillStyle = '#1f67d6';
+      ctx.beginPath(); ctx.roundRect(-23,-55,46,48,8); ctx.fill();
+      ctx.fillStyle = '#1850b5';
+      ctx.fillRect(-8,-55,16,48);
+      ctx.fillStyle = '#ffd75d';
+      ctx.fillRect(-13,-43,8,9);
+      ctx.fillRect(7,-43,8,9);
+
+      // Arms and gloves.
+      ctx.strokeStyle = '#e73828';
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-25,-47); ctx.lineTo(-47,-35-run*10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(25,-47); ctx.lineTo(47,state.attack > 0 ? -83 : -35+run*10); ctx.stroke();
+      ctx.fillStyle = '#fff6df';
+      ctx.beginPath(); ctx.arc(-52,-33-run*10,11,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(52,state.attack > 0 ? -86 : -33+run*10,11,0,Math.PI*2); ctx.fill();
+
+      // Head, hair, hat, and face.
+      ctx.fillStyle = '#ffd8a8';
+      ctx.beginPath(); ctx.roundRect(-23,-103,52,44,14); ctx.fill();
+      ctx.fillStyle = '#5b2d18';
+      ctx.fillRect(-23,-95,16,24);
+      ctx.fillRect(6,-76,28,8);
+      ctx.fillStyle = '#ff3d2e';
+      ctx.beginPath(); ctx.roundRect(-31,-116,64,22,8); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-18,-132,50,28,8); ctx.fill();
+      ctx.fillStyle = '#fff7e8';
+      ctx.beginPath(); ctx.arc(8,-115,12,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#d5221e';
+      ctx.font = '900 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('M',8,-115);
+      ctx.fillStyle = '#101827';
+      ctx.fillRect(11,-88,6,7);
+      ctx.fillStyle = '#6b351b';
+      ctx.beginPath(); ctx.roundRect(4,-73,28,10,5); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.22)';
+      ctx.fillRect(-12,-52,9,33);
+      ctx.fillRect(-2,-122,28,5);
+
+      if (state.collect > 0) {
+        ctx.strokeStyle = 'rgba(54,255,155,.82)';
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(0,-58,74 + Math.sin(state.collect*20)*8,0,Math.PI*2); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    function drawParticles(){
+      state.particles.forEach(p => {
+        ctx.fillStyle = `rgba(${p.rgb[0]},${p.rgb[1]},${p.rgb[2]},${Math.max(0,p.life/.75)})`;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fill();
+      });
+    }
+    function burst(x,y,rgb,count){
+      for (let i=0;i<count;i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = 60 + Math.random() * 180;
+        state.particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-40,r:3+Math.random()*4,life:.4+Math.random()*.42,rgb});
+      }
+    }
+    function updateHud(){
+      document.getElementById('score').textContent = state.score.toLocaleString();
+      document.getElementById('lives').textContent = state.lives;
+      document.getElementById('combo').textContent = 'x' + Math.max(1,state.combo);
+    }
+    function showToast(text,color){
+      const el = document.getElementById('toast');
+      el.textContent = text;
+      el.style.color = color;
+      el.classList.remove('show');
+      void el.offsetWidth;
+      el.classList.add('show');
+    }
+    function initAudio(){
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) audioCtx = new Ctx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    function tone(freq,dur,gain,type='sine',delay=0){
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime + delay;
+      const osc = audioCtx.createOscillator();
+      const amp = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      amp.gain.setValueAtTime(.0001,t);
+      amp.gain.exponentialRampToValueAtTime(gain,t+.015);
+      amp.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      osc.connect(amp).connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t+dur+.04);
+    }
+    function noteFreq(note){ return 440 * Math.pow(2,(note-69)/12); }
+    function playClick(note){ tone(noteFreq(note),.055,.035,'triangle'); }
+    function playPrompt(){ tone(880,.055,.035,'square'); tone(1320,.07,.025,'square',.055); }
+    function playSuccess(name){
+      CHORDS[name].keys.forEach((k,i) => tone(noteFreq(KEY_BASE+k),.28,.04,'triangle',i*.035));
+    }
+    function playBad(){ tone(145,.18,.06,'sawtooth'); tone(92,.22,.045,'sawtooth',.08); }
+
+    function buildPiano(){
+      const piano = document.getElementById('piano');
+      for (let i=0;i<36;i++) {
+        const btn = document.createElement('button');
+        btn.className = 'key' + (KEY_IS_BLACK[i%12] ? ' black' : '');
+        btn.id = 'key' + i;
+        btn.type = 'button';
+        btn.dataset.note = String(KEY_BASE + i);
+        btn.innerHTML = `<span>${NOTE_NAMES[i%12]}</span>`;
+        btn.addEventListener('pointerdown', () => virtualNote(KEY_BASE + i, btn));
+        piano.appendChild(btn);
+      }
+      const controls = document.getElementById('controls');
+      CHORD_ORDER.forEach(name => {
+        const def = CHORDS[name];
+        const btn = document.createElement('button');
+        btn.className = 'chordBtn';
+        btn.type = 'button';
+        btn.id = 'btn' + name;
+        btn.style.setProperty('--btnGlow', `rgba(${def.rgb.join(',')},.72)`);
+        btn.style.setProperty('--btnBg', `rgb(${def.rgb.join(',')})`);
+        btn.textContent = `${def.hotkey}  ${name} ${def.action}`;
+        btn.addEventListener('click', () => simulateChord(name));
+        controls.appendChild(btn);
+      });
+      updatePiano();
+    }
+    function updatePiano(){
+      for (let i=0;i<36;i++) {
+        const el = document.getElementById('key' + i);
+        if (!el) continue;
+        const [r,g,b] = ledState[i];
+        const lit = r + g + b > 35;
+        el.classList.toggle('lit', lit);
+        el.style.background = lit ? `rgb(${r},${g},${b})` : '';
+        el.style.setProperty('--glow', `rgba(${r},${g},${b},.78)`);
+      }
+    }
+    function markActiveButtons(name){
+      CHORD_ORDER.forEach(n => document.getElementById('btn'+n).classList.toggle('active', n === name));
+    }
+    function virtualNote(note, el){
+      initAudio();
+      heldNotes.add(note);
+      el.classList.add('down');
+      playClick(note);
+      checkChord();
+      window.setTimeout(() => {
+        heldNotes.delete(note);
+        el.classList.remove('down');
+      }, 360);
+    }
+    function simulateChord(name){
+      initAudio();
+      CHORDS[name].keys.forEach(i => heldNotes.add(KEY_BASE+i));
+      checkChord();
+      window.setTimeout(() => CHORDS[name].keys.forEach(i => heldNotes.delete(KEY_BASE+i)), 140);
+    }
+
+    document.getElementById('startMidi').addEventListener('click', async () => {
+      initAudio();
+      demoMode = false;
+      await connectMIDI();
+      reset();
+    });
+    document.getElementById('startDemo').addEventListener('click', () => {
+      initAudio();
+      demoMode = true;
+      reset();
+    });
+    document.addEventListener('keydown', e => {
+      const found = CHORD_ORDER.find(name => CHORDS[name].hotkey === e.key);
+      if (found) simulateChord(found);
+      if (e.code === 'Space' && !state.running) {
+        demoMode = true;
+        initAudio();
+        reset();
+      }
+    });
+
+    buildPiano();
+    window.__chordRunnerState = state;
+    draw();
+  </script>
+</body>
+</html>
