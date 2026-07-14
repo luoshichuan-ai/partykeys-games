@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffcf24" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <title>Crazy Chase</title>
+    <link rel="stylesheet" href="./styles.css?v=20260714-1" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="menu-screen" class="screen menu-screen">
+        <div class="sunburst" aria-hidden="true"></div>
+        <div class="menu-sticker">
+          <p class="eyebrow">MIDI RHYTHM CHASE</p>
+          <h1><span>Crazy</span> Chase</h1>
+          <p class="menu-subtitle">Play the right note to close the gap!</p>
+          <button id="scene-button" class="scene-select-button">
+            Current scene: <strong id="scene-label">Kitchen Caper</strong>
+          </button>
+          <div class="menu-buttons">
+            <button id="start-button" class="comic-button primary">Start Game</button>
+            <button id="difficulty-button" class="comic-button">
+              Difficulty
+              <span id="difficulty-label" class="button-tag">NORMAL</span>
+            </button>
+            <button id="midi-button" class="comic-button">
+              Connect Keyboard
+              <span id="midi-status" class="button-tag muted">Offline</span>
+            </button>
+          </div>
+          <p class="keyboard-hint">No MIDI? Use A S D F G H J K to try the white keys.</p>
+        </div>
+        <div class="menu-doodle doodle-left">♫</div>
+        <div class="menu-doodle doodle-right">⚡</div>
+      </section>
+
+      <section id="game-screen" class="screen game-screen hidden">
+        <header class="game-header">
+          <button id="back-button" class="icon-button" aria-label="Back to menu">←</button>
+          <div class="level-heading">
+            <span id="scene-name">Kitchen Caper</span>
+            <strong id="melody-name">Twinkle Twinkle</strong>
+          </div>
+          <div class="header-score">
+            <span>SCORE</span>
+            <strong id="score-value">0</strong>
+          </div>
+          <div class="header-combo">
+            <span>COMBO</span>
+            <strong id="header-combo-value">0</strong>
+          </div>
+          <div class="difficulty-chip" id="game-difficulty">NORMAL · 1.3×</div>
+        </header>
+
+        <section class="score-panel" aria-label="Score track">
+          <div class="score-meta">
+            <span>This round</span>
+            <span id="progress-label">0 / 15</span>
+          </div>
+          <div id="note-track" class="note-track"></div>
+        </section>
+
+        <section id="chase-stage" class="chase-stage combo-normal">
+          <div class="sky-decor cloud cloud-one"></div>
+          <div class="sky-decor cloud cloud-two"></div>
+          <div class="school-building">
+            <div class="school-sign">Maple Ridge Elementary</div>
+            <div class="school-windows"></div>
+          </div>
+          <div class="finish-line">
+            <div class="finish-banner">EXIT</div>
+            <div class="finish-post left"></div>
+            <div class="finish-post right"></div>
+          </div>
+          <div class="track-line"></div>
+
+          <div id="chaser" class="character chaser action-idle" data-action="idle" aria-label="Chef Cat">
+            <div class="speed-lines"></div>
+            <div class="scene-placeholder chaser-placeholder" aria-hidden="true">🐈</div>
+            <div class="sprite-frame chaser-sprite" aria-hidden="true"></div>
+            <div class="character-art teacher fallback-art">
+              <div class="teacher-hair"></div>
+              <div class="face">
+                <div class="glasses"><i></i><i></i></div>
+                <div class="mouth"></div>
+              </div>
+              <div class="body"><span class="tie"></span></div>
+              <div class="pointer"></div>
+              <div class="chair">Desk Chair</div>
+            </div>
+            <span id="chaser-label" class="character-label">Chef Cat</span>
+          </div>
+
+          <div id="runner" class="character runner action-idle" data-action="idle" aria-label="Mouse">
+            <div class="runner-emotion" aria-hidden="true"></div>
+            <div class="scene-placeholder runner-placeholder" aria-hidden="true">🐭</div>
+            <div class="sprite-frame runner-sprite" aria-hidden="true"></div>
+            <div class="character-art student fallback-art">
+              <div class="student-hair"></div>
+              <div class="face">
+                <div class="eyes"><i></i><i></i></div>
+                <div class="mouth"></div>
+              </div>
+              <div class="body"></div>
+              <div class="latiao">Chips</div>
+              <div class="backpack"></div>
+              <div class="bike">🚲</div>
+            </div>
+            <span id="runner-label" class="character-label">Cheese Bandit</span>
+          </div>
+
+          <div id="judgement" class="judgement" aria-live="polite"></div>
+          <div id="combo-burst" class="combo-burst" aria-live="polite"></div>
+          <div id="final-chase-alert" class="final-chase-alert" aria-live="polite">FINAL CHASE!</div>
+
+          <div class="hud">
+            <div class="combo-meter">
+              <span>COMBO</span>
+              <strong id="combo-value">0</strong>
+            </div>
+            <div class="state-meter">
+              <span>Chase Mode</span>
+              <strong id="combo-state">Normal</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="game-controls">
+          <button id="ready-button" class="comic-button ready-button">Ready</button>
+          <div id="playing-help" class="playing-help hidden">
+            <span class="live-dot"></span>
+            <span id="input-help">Waiting for MIDI input</span>
+          </div>
+        </section>
+
+        <div id="countdown-overlay" class="overlay hidden">
+          <div class="title-card">
+            <p id="countdown-scene">Kitchen Caper</p>
+            <h2 id="countdown-versus">Chef Cat <em>VS</em> Mouse</h2>
+            <strong id="countdown-story">The mouse snatched the last slice of cheese!</strong>
+          </div>
+          <div id="countdown-number" class="countdown-number">3</div>
+        </div>
+
+        <div id="result-overlay" class="overlay result-overlay hidden">
+          <div id="result-card" class="result-card">
+            <p id="result-kicker">Caught</p>
+            <h2 id="result-title">Caught!</h2>
+            <div id="result-visual" class="result-visual">
+              <div id="result-chaser" class="result-sprite result-chaser" aria-hidden="true"></div>
+              <div id="result-runner" class="result-sprite result-runner" aria-hidden="true"></div>
+              <div id="result-props" class="result-props" aria-hidden="true"></div>
+            </div>
+            <p id="result-copy"></p>
+            <div class="result-actions">
+              <button id="retry-button" class="comic-button primary">Play Again</button>
+              <button id="menu-button" class="comic-button">Menu</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div id="difficulty-modal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+          <button id="close-difficulty" class="modal-close" aria-label="Close">×</button>
+          <p class="eyebrow">Escape speed</p>
+          <h2>Choose Difficulty</h2>
+          <div id="difficulty-options" class="difficulty-options"></div>
+        </div>
+      </div>
+
+      <div id="scene-modal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+          <button id="close-scene" class="modal-close" aria-label="Close">×</button>
+          <p class="eyebrow">CHASE SCENE</p>
+          <h2>Choose Scene</h2>
+          <div id="scene-options" class="difficulty-options"></div>
+        </div>
+      </div>
+
+      <div id="toast" class="toast" aria-live="polite"></div>
+    </main>
+    <script src="./game.js?v=20260714-2"></script>
+  </body>
+</html>

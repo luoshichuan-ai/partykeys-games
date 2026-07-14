@@ -219,7 +219,7 @@
 
       .game-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 16px;
         margin-top: 38px;
       }
@@ -637,7 +637,7 @@
 
     <main>
       <section class="wrap hero">
-        <div class="eyebrow">PartyKeys Game Center · 4 web games</div>
+        <div class="eyebrow">PartyKeys Game Center · 7 web games</div>
         <h1>
           Pick a game.
           <span class="gradient-line">Start playing.</span>
@@ -652,7 +652,7 @@
           <div class="num">01</div>
           <div>
             <div class="section-kicker">Game library</div>
-            <h2>Four web games. No install. No login.</h2>
+            <h2>Seven web games. No install. No login.</h2>
             <p class="lead">Open a card to launch a game. The Game Center is the front door; the game pages keep their own original code and controls.</p>
             <div class="game-grid" id="gameGrid" aria-label="PartyKeys games"></div>
           </div>
@@ -733,8 +733,11 @@
           <ul class="footer-links">
             <li><a href="./games/glow-game/">Glow Game</a></li>
             <li><a href="./games/chord-climber/">Chord Climber</a></li>
+            <li><a href="./games/chord-jump/">Chord Jump</a></li>
             <li><a href="./games/fruit-frenzy/">Fruit Frenzy</a></li>
             <li><a href="./games/chord-runner/">Chord Runner</a></li>
+            <li><a href="./games/crazy-chase/">Crazy Chase</a></li>
+            <li><a href="./games/absurd-beat-club/">Absurd Beat Club</a></li>
           </ul>
         </div>
 
@@ -761,7 +764,7 @@
           title: "Glow Game",
           description: "Pixel stage challenge with glowing chord prompts, levels, combos, and boss moments.",
           url: "./games/glow-game/",
-          thumb: "assets/thumbs/glow-game.png",
+          thumb: "./assets/thumbs/glow-game.png",
           icon: "✦",
           accent: "#ff4242",
           tags: ["Chords", "Levels"]
@@ -770,16 +773,25 @@
           title: "Chord Climber",
           description: "Play the target chord before the timer drains and climb higher with every correct move.",
           url: "./games/chord-climber/",
-          thumb: "assets/thumbs/chord-climber.png",
+          thumb: "./assets/thumbs/chord-climber.png",
           icon: "↟",
           accent: "#ff8c24",
           tags: ["Timing", "Climb"]
         },
         {
+          title: "Chord Jump",
+          description: "Hold the glowing chord, release with the right timing, and jump across musical platforms.",
+          url: "./games/chord-jump/",
+          thumb: "./assets/thumbs/chord-jump.png",
+          icon: "↗",
+          accent: "#35a7ff",
+          tags: ["Chord", "Timing"]
+        },
+        {
           title: "Fruit Frenzy",
           description: "Slice fruit by matching the lit chord, chase combos, and keep the run alive.",
           url: "./games/fruit-frenzy/",
-          thumb: "assets/thumbs/fruit-frenzy.png",
+          thumb: "./assets/thumbs/fruit-frenzy.png",
           icon: "●",
           accent: "#49c98b",
           tags: ["Arcade", "Combo"]
@@ -788,10 +800,28 @@
           title: "Chord Runner",
           description: "Run, jump, dodge, attack, and collect by playing the target PartyKeys chord.",
           url: "./games/chord-runner/",
-          thumb: "assets/thumbs/chord-runner.png",
+          thumb: "./assets/thumbs/chord-runner.png",
           icon: "→",
           accent: "#8057ff",
           tags: ["Runner", "Action"]
+        },
+        {
+          title: "Crazy Chase",
+          description: "Play the right notes to sprint forward, escape the chase, and switch between playful scenes.",
+          url: "./games/crazy-chase/",
+          thumb: "./assets/thumbs/crazy-chase.png",
+          icon: "!",
+          accent: "#ffc83d",
+          tags: ["Chase", "MIDI"]
+        },
+        {
+          title: "Absurd Beat Club",
+          description: "A BGM-driven PartyKeys rhythm show with 20 visual stages and chord memory challenges.",
+          url: "./games/absurd-beat-club/",
+          thumb: "./assets/thumbs/absurd-beat-club.jpg",
+          icon: "♪",
+          accent: "#50b8ff",
+          tags: ["Rhythm", "BGM"]
         }
       ];
 

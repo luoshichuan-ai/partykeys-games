@@ -13,12 +13,24 @@ partykeys-games/
       index.html
     chord-climber/
       index.html
+    chord-jump/
+      index.html
     fruit-frenzy/
       index.html
       styles.css
       app.js
     chord-runner/
       index.html
+    crazy-chase/
+      index.html
+      styles.css
+      game.js
+      assets/
+    absurd-beat-club/
+      index.html
+      styles.css
+      game.js
+      assets/
 ```
 
 ## 本地运行
@@ -52,10 +64,14 @@ http://localhost:8080
   title: "New Game",
   description: "Short description.",
   url: "./games/new-game/",
-  mark: "N",
-  tag: "Arcade"
+  thumb: "assets/thumbs/new-game.png",
+  icon: "N",
+  accent: "#8057ff",
+  tags: ["Arcade"]
 }
 ```
+
+当前大厅包含 7 个游戏：Glow Game、Chord Climber、Chord Jump、Fruit Frenzy、Chord Runner、Crazy Chase、Absurd Beat Club。
 
 ## Netlify 部署
 
